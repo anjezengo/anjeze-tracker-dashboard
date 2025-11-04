@@ -2,10 +2,9 @@
  * Animated statistics cards
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useFilters } from '@/lib/filters';
-import gsap from 'gsap';
 
 type Stats = {
   totalBeneficiaries: number;
@@ -25,7 +24,6 @@ export function StatsCards() {
     uniqueSubProjects: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const statsRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -44,41 +42,12 @@ export function StatsCards() {
         const result = await response.json();
 
         if (result.success && result.data) {
-          const prevStats = { ...stats };
-          const newStats = {
+          setStats({
             totalBeneficiaries: result.data.overall.total_beneficiaries,
             totalAmount: result.data.overall.total_amount,
             totalRecords: result.data.overall.total_records,
             uniqueProjects: result.data.overall.unique_projects,
             uniqueSubProjects: result.data.overall.unique_sub_projects,
-          };
-
-          setStats(newStats);
-
-          // Animate number changes
-          statsRefs.current.forEach((ref, index) => {
-            if (ref) {
-              const key = Object.keys(newStats)[index] as keyof Stats;
-              const from = prevStats[key];
-              const to = newStats[key];
-
-              gsap.fromTo(
-                ref,
-                { textContent: from },
-                {
-                  textContent: to,
-                  duration: 1.5,
-                  ease: 'power2.out',
-                  snap: { textContent: 1 },
-                  onUpdate: function () {
-                    const current = Math.round(
-                      parseFloat(ref.textContent || '0')
-                    );
-                    ref.textContent = current.toLocaleString();
-                  },
-                }
-              );
-            }
           });
         }
       } catch (error) {
@@ -153,10 +122,7 @@ export function StatsCards() {
             <span className="text-2xl">{card.icon}</span>
           </div>
           <p className={`text-3xl font-bold ${card.color}`}>
-            {card.prefix}
-            <span ref={(el) => (statsRefs.current[index] = el)}>
-              {card.value.toLocaleString()}
-            </span>
+            {card.prefix}{card.value.toLocaleString()}
           </p>
         </motion.div>
       ))}

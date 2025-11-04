@@ -3,7 +3,7 @@
  */
 
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 export type FilterState = {
   years: number[];
@@ -62,7 +62,23 @@ export function filtersToQuery(filters: FilterState): Record<string, any> {
  */
 export function useFilters() {
   const router = useRouter();
-  const filters = parseFiltersFromQuery(router.query);
+
+  // Memoize filters to prevent infinite loops - use JSON.stringify for stable comparison
+  const queryString = useMemo(
+    () => JSON.stringify({
+      years: router.query.years,
+      project: router.query.project,
+      subProject: router.query.subProject,
+      institute: router.query.institute,
+      type: router.query.type,
+    }),
+    [router.query.years, router.query.project, router.query.subProject, router.query.institute, router.query.type]
+  );
+
+  const filters = useMemo(
+    () => parseFiltersFromQuery(router.query),
+    [queryString]
+  );
 
   const updateFilters = useCallback(
     (newFilters: Partial<FilterState>) => {

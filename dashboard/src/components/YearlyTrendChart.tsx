@@ -2,7 +2,7 @@
  * Bar Chart with Trend Line: Yearly metrics
  */
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart,
@@ -17,7 +17,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useFilters } from '@/lib/filters';
-import gsap from 'gsap';
 
 type ChartData = {
   year: number;
@@ -29,7 +28,6 @@ export function YearlyTrendChart() {
   const { filters } = useFilters();
   const [data, setData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -78,18 +76,6 @@ export function YearlyTrendChart() {
     fetchData();
   }, [filters]);
 
-  // Animate chart on mount
-  useEffect(() => {
-    if (chartRef.current && !isLoading) {
-      gsap.from(chartRef.current, {
-        opacity: 0,
-        y: 30,
-        duration: 0.8,
-        ease: 'power2.out',
-      });
-    }
-  }, [isLoading, data]);
-
   if (isLoading) {
     return (
       <div className="glass-effect rounded-xl p-6">
@@ -118,11 +104,12 @@ export function YearlyTrendChart() {
 
   return (
     <motion.div
+      key="yearly-trend-chart"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
       className="glass-effect rounded-xl p-6"
-      ref={chartRef}
     >
       <h3 className="text-xl font-semibold text-accent-primary mb-4">
         Yearly Beneficiaries Trend
