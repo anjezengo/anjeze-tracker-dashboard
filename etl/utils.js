@@ -181,18 +181,28 @@ export function generateRowHash(row) {
  */
 export function cleanRow(rawRow) {
   // Extract original values (preserve exact as-is)
+  // Note: Column names have been normalized by import.js
   const original = {
     sr_no: rawRow['Sr.No'] != null ? String(rawRow['Sr.No']) : null,
     year: rawRow['Year'] != null ? String(rawRow['Year']) : null,
     date: rawRow['Date'] != null ? String(rawRow['Date']) : null,
     project: rawRow['Project'] != null ? String(rawRow['Project']) : null,
     sub_project: rawRow['Sub Project'] != null ? String(rawRow['Sub Project']) : null,
-    institute: rawRow['Institute'] != null ? String(rawRow['Institute']) : null,
-    type_of_institution: rawRow['Type of Institution'] != null ? String(rawRow['Type of Institution']) : null,
+    // Handle multiple possible column names for institute
+    institute: (rawRow['Institute'] ?? rawRow['Name of Institute / Area of Service']) != null
+      ? String(rawRow['Institute'] ?? rawRow['Name of Institute / Area of Service'])
+      : null,
+    // Handle multiple possible column names for type
+    type_of_institution: (rawRow['Type of Institution'] ?? rawRow['Type of Institute']) != null
+      ? String(rawRow['Type of Institution'] ?? rawRow['Type of Institute'])
+      : null,
     quantity: rawRow['Quantity'] != null ? String(rawRow['Quantity']) : null,
     no_of_beneficiaries: rawRow['No. of Beneficiaries'] != null ? String(rawRow['No. of Beneficiaries']) : null,
     amount: rawRow['Amount'] != null ? String(rawRow['Amount']) : null,
-    remarks: rawRow['Remarks'] != null ? String(rawRow['Remarks']) : null
+    // Handle multiple possible column names for remarks
+    remarks: (rawRow['Remarks'] ?? rawRow['Services / Remarks']) != null
+      ? String(rawRow['Remarks'] ?? rawRow['Services / Remarks'])
+      : null
   };
 
   // Generate canonical (cleaned) fields

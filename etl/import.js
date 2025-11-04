@@ -60,6 +60,22 @@ function createPool() {
   });
 }
 
+// Normalize column names by trimming whitespace and newlines
+function normalizeColumnName(colName) {
+  if (!colName) return colName;
+  return String(colName).replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Normalize all keys in a row object
+function normalizeRowKeys(row) {
+  const normalized = {};
+  for (const [key, value] of Object.entries(row)) {
+    const normalizedKey = normalizeColumnName(key);
+    normalized[normalizedKey] = value;
+  }
+  return normalized;
+}
+
 // Read Excel file and return rows from "Tracker" sheet
 function readExcelFile(filePath) {
   console.log(`📖 Reading Excel file: ${filePath}`);
@@ -85,9 +101,12 @@ function readExcelFile(filePath) {
     defval: null // Default value for empty cells
   });
 
-  console.log(`✓ Parsed ${rows.length} rows`);
+  // Normalize column names (remove newlines, extra spaces)
+  const normalizedRows = rows.map(normalizeRowKeys);
 
-  return rows;
+  console.log(`✓ Parsed ${normalizedRows.length} rows`);
+
+  return normalizedRows;
 }
 
 // Insert or update row in database (idempotent)

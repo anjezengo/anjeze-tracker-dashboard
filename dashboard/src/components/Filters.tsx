@@ -92,7 +92,7 @@ export function Filters() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="glass-effect rounded-xl p-6"
+      className="glass-effect rounded-xl p-6 relative z-20"
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-accent-primary">Filters</h2>
@@ -267,7 +267,7 @@ function MultiSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 glass-effect rounded-lg border border-dark-600 max-h-60 overflow-y-auto"
+            className="absolute z-[100] w-full mt-2 glass-effect rounded-lg border border-dark-600 max-h-60 overflow-y-auto shadow-2xl"
           >
             {options.map((option) => (
               <label
