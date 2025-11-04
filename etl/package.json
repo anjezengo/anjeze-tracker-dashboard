@@ -1,0 +1,25 @@
+{
+  "name": "anjeze-tracker-etl",
+  "version": "1.0.0",
+  "description": "ETL pipeline for Anjeze Tracker data import",
+  "main": "import.js",
+  "type": "module",
+  "scripts": {
+    "import": "node import.js",
+    "seed-assets": "node seed-assets.js",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
+  },
+  "keywords": ["etl", "excel", "postgres", "supabase"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "xlsx": "^0.18.5",
+    "dayjs": "^1.11.10",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6"
+  }
+}
