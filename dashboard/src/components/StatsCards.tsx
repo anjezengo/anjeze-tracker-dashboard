@@ -121,7 +121,7 @@ export function StatsCards() {
             <p className="text-sm text-accent-secondary">{card.label}</p>
             <span className="text-2xl">{card.icon}</span>
           </div>
-          <p className={`text-3xl font-bold ${card.color}`}>
+          <p className={`text-2xl font-bold ${card.color}`}>
             {card.prefix}{card.value.toLocaleString()}
           </p>
         </motion.div>

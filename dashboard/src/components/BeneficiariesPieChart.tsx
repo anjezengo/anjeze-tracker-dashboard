@@ -51,7 +51,7 @@ export function BeneficiariesPieChart() {
 
         if (result.success && result.data) {
           const chartData: ChartData[] = result.data.bySubProject
-            .slice(0, 10) // Top 10
+            .slice(0, 8) // Top 8
             .map((item: any, index: number) => ({
               name: item.sub_project,
               value: item.total_beneficiaries,
@@ -118,16 +118,21 @@ export function BeneficiariesPieChart() {
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={480}>
         <PieChart>
           <Pie
             data={data}
             cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={({ name, percent }) =>
-              `${name}: ${(percent * 100).toFixed(0)}%`
-            }
+            cy="42%"
+            labelLine={{
+              stroke: '#6b7280',
+              strokeWidth: 1,
+            }}
+            label={({ name, percent }) => {
+              // Shorten long names to fit better
+              const shortName = name.length > 22 ? name.substring(0, 20) + '...' : name;
+              return `${shortName}: ${(percent * 100).toFixed(0)}%`;
+            }}
             outerRadius={120}
             fill="#8884d8"
             dataKey="value"
@@ -152,8 +157,9 @@ export function BeneficiariesPieChart() {
           />
           <Legend
             verticalAlign="bottom"
-            height={36}
-            wrapperStyle={{ paddingTop: '20px' }}
+            height={50}
+            wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+            iconType="circle"
           />
         </PieChart>
       </ResponsiveContainer>
