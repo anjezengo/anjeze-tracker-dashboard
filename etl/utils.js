@@ -181,35 +181,43 @@ export function generateRowHash(row) {
  */
 export function cleanRow(rawRow) {
   // Extract original values (preserve exact as-is)
-  // Note: Column names have been normalized by import.js
+  // Note: Column names have been normalized by import.js, but may have trailing spaces
   const original = {
     sr_no: rawRow['Sr.No'] != null ? String(rawRow['Sr.No']) : null,
     year: rawRow['Year'] != null ? String(rawRow['Year']) : null,
+    month: rawRow['Month'] != null ? String(rawRow['Month']) : null,
     date: rawRow['Date'] != null ? String(rawRow['Date']) : null,
+    cause: rawRow['Cause'] != null ? String(rawRow['Cause']) : null,
     project: rawRow['Project'] != null ? String(rawRow['Project']) : null,
     sub_project: rawRow['Sub Project'] != null ? String(rawRow['Sub Project']) : null,
     // Handle multiple possible column names for institute
     institute: (rawRow['Institute'] ?? rawRow['Name of Institute / Area of Service']) != null
       ? String(rawRow['Institute'] ?? rawRow['Name of Institute / Area of Service'])
       : null,
+    department: rawRow['Department'] != null ? String(rawRow['Department']) : null,
     // Handle multiple possible column names for type
     type_of_institution: (rawRow['Type of Institution'] ?? rawRow['Type of Institute']) != null
       ? String(rawRow['Type of Institution'] ?? rawRow['Type of Institute'])
       : null,
     quantity: rawRow['Quantity'] != null ? String(rawRow['Quantity']) : null,
     no_of_beneficiaries: rawRow['No. of Beneficiaries'] != null ? String(rawRow['No. of Beneficiaries']) : null,
-    amount: rawRow['Amount'] != null ? String(rawRow['Amount']) : null,
     // Handle multiple possible column names for remarks
     remarks: (rawRow['Remarks'] ?? rawRow['Services / Remarks']) != null
       ? String(rawRow['Remarks'] ?? rawRow['Services / Remarks'])
-      : null
+      : null,
+    amount: rawRow['Amount'] != null ? String(rawRow['Amount']) : null,
+    comments_by_pankti: rawRow['Comments by Pankti'] != null ? String(rawRow['Comments by Pankti']) : null,
+    on_account_kind: rawRow['On account / Kind'] != null ? String(rawRow['On account / Kind']) : null
   };
 
   // Generate canonical (cleaned) fields
   const canonical = {
+    month_canon: canonicalizeText(original.month),
+    cause_canon: canonicalizeText(original.cause),
     project_canon: canonicalizeText(original.project),
     sub_project_canon: canonicalizeText(original.sub_project),
     institute_canon: canonicalizeText(original.institute),
+    department_canon: canonicalizeText(original.department),
     type_of_institution_canon: canonicalizeText(original.type_of_institution),
     remarks_canon: canonicalizeText(original.remarks)
   };

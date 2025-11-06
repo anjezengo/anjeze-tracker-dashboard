@@ -9,6 +9,8 @@ import { StatsCards } from '@/components/StatsCards';
 import { BeneficiariesPieChart } from '@/components/BeneficiariesPieChart';
 import { YearlyTrendChart } from '@/components/YearlyTrendChart';
 import { AssetDisplay } from '@/components/AssetDisplay';
+import { CauseCards } from '@/components/CauseCards';
+import { RemarksQuantityVisualization } from '@/components/RemarksQuantityVisualization';
 
 export default function Home() {
   return (
@@ -31,10 +33,10 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="text-center mb-8"
         >
-          <h2 className="text-4xl font-bold text-accent-primary mb-2">
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-accent-primary mb-2">
             Welcome to Anjeze Tracker
           </h2>
-          <p className="text-lg text-accent-secondary">
+          <p className="text-lg text-gray-700 dark:text-accent-secondary">
             Monitor impact, track beneficiaries, and visualize project outcomes
           </p>
         </motion.div>
@@ -54,36 +56,19 @@ export default function Home() {
           <YearlyTrendChart />
         </div>
 
-        {/* Info Card */}
+        {/* Remarks & Quantity Visualization */}
+        <RemarksQuantityVisualization />
+
+        {/* Cause Cards - Impact by Cause */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.8 }}
-          className="glass-effect rounded-xl p-6"
         >
-          <h3 className="text-xl font-semibold text-accent-primary mb-4">
-            📊 How to Use This Dashboard
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-accent-primary mb-6 text-center">
+            Impact by Cause
           </h3>
-          <ul className="space-y-2 text-accent-secondary">
-            <li>
-              • Use the <strong>filters</strong> above to narrow down data by
-              year, project, sub-project, institute, or institution type
-            </li>
-            <li>
-              • Select a <strong>sub-project</strong> filter to view its image
-              and description
-            </li>
-            <li>
-              • Charts update automatically based on your selected filters
-            </li>
-            <li>
-              • Filter settings are saved in the URL - share links with your
-              team!
-            </li>
-            <li>
-              • Visit the <strong>Submit Data</strong> page to add new records
-            </li>
-          </ul>
+          <CauseCards />
         </motion.div>
       </div>
     </>

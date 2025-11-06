@@ -16,12 +16,14 @@ export function Filters() {
     subProjects: string[];
     institutes: string[];
     types: string[];
+    causes: string[];
   }>({
     years: [],
     projects: [],
     subProjects: [],
     institutes: [],
     types: [],
+    causes: [],
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +43,7 @@ export function Filters() {
         const subProjectsSet = new Set<string>();
         const institutesSet = new Set<string>();
         const typesSet = new Set<string>();
+        const causesSet = new Set<string>();
 
         data.forEach((row) => {
           if (row.year_start) yearsSet.add(row.year_start);
@@ -48,6 +51,7 @@ export function Filters() {
           if (row.sub_project) subProjectsSet.add(row.sub_project);
           if (row.institute) institutesSet.add(row.institute);
           if (row.type_of_institution) typesSet.add(row.type_of_institution);
+          if (row.cause) causesSet.add(row.cause);
         });
 
         setOptions({
@@ -56,6 +60,7 @@ export function Filters() {
           subProjects: Array.from(subProjectsSet).sort(),
           institutes: Array.from(institutesSet).sort(),
           types: Array.from(typesSet).sort(),
+          causes: Array.from(causesSet).sort(),
         });
       } catch (error) {
         console.error('Error fetching filter options:', error);
@@ -69,10 +74,11 @@ export function Filters() {
 
   const hasActiveFilters =
     filters.years.length > 0 ||
-    filters.project ||
-    filters.subProject ||
-    filters.institute ||
-    filters.type;
+    filters.projects.length > 0 ||
+    filters.subProjects.length > 0 ||
+    filters.institutes.length > 0 ||
+    filters.types.length > 0 ||
+    filters.causes.length > 0;
 
   if (isLoading) {
     return (
@@ -92,10 +98,10 @@ export function Filters() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="glass-effect rounded-xl p-6 relative z-20"
+      className="glass-effect rounded-xl p-6 relative z-50"
     >
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-accent-primary">Filters</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-accent-primary">Filters</h2>
         <AnimatePresence>
           {hasActiveFilters && (
             <motion.button
@@ -103,7 +109,7 @@ export function Filters() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={clearFilters}
-              className="text-sm text-accent-secondary hover:text-accent-primary transition-colors"
+              className="text-sm text-gray-600 dark:text-accent-secondary hover:text-gray-900 dark:hover:text-accent-primary transition-colors"
             >
               Clear All
             </motion.button>
@@ -111,10 +117,10 @@ export function Filters() {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 relative z-[100]">
         {/* Years (Multi-select) */}
-        <div>
-          <label className="block text-sm font-medium text-accent-secondary mb-2">
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
             Years
           </label>
           <MultiSelect
@@ -127,54 +133,67 @@ export function Filters() {
           />
         </div>
 
-        {/* Project */}
-        <div>
-          <label className="block text-sm font-medium text-accent-secondary mb-2">
+        {/* Cause (Multi-select) */}
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
+            Cause
+          </label>
+          <MultiSelect
+            options={options.causes}
+            selected={filters.causes}
+            onChange={(selected) => updateFilters({ causes: selected })}
+            placeholder="All Causes"
+          />
+        </div>
+
+        {/* Project (Multi-select) */}
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
             Project
           </label>
-          <Select
+          <MultiSelect
             options={options.projects}
-            selected={filters.project}
-            onChange={(value) => updateFilters({ project: value })}
+            selected={filters.projects}
+            onChange={(selected) => updateFilters({ projects: selected })}
             placeholder="All Projects"
           />
         </div>
 
-        {/* Sub-Project */}
-        <div>
-          <label className="block text-sm font-medium text-accent-secondary mb-2">
+        {/* Sub-Project (Multi-select) */}
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
             Sub-Project
           </label>
-          <Select
+          <MultiSelect
             options={options.subProjects}
-            selected={filters.subProject}
-            onChange={(value) => updateFilters({ subProject: value })}
+            selected={filters.subProjects}
+            onChange={(selected) => updateFilters({ subProjects: selected })}
             placeholder="All Sub-Projects"
           />
         </div>
 
-        {/* Institute */}
-        <div>
-          <label className="block text-sm font-medium text-accent-secondary mb-2">
+        {/* Institute (Multi-select) */}
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
             Institute
           </label>
-          <Select
+          <MultiSelect
             options={options.institutes}
-            selected={filters.institute}
-            onChange={(value) => updateFilters({ institute: value })}
+            selected={filters.institutes}
+            onChange={(selected) => updateFilters({ institutes: selected })}
             placeholder="All Institutes"
           />
         </div>
 
-        {/* Type */}
-        <div>
-          <label className="block text-sm font-medium text-accent-secondary mb-2">
+        {/* Type (Multi-select) */}
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
             Type
           </label>
-          <Select
+          <MultiSelect
             options={options.types}
-            selected={filters.type}
-            onChange={(value) => updateFilters({ type: value })}
+            selected={filters.types}
+            onChange={(selected) => updateFilters({ types: selected })}
             placeholder="All Types"
           />
         </div>
@@ -183,32 +202,6 @@ export function Filters() {
   );
 }
 
-function Select({
-  options,
-  selected,
-  onChange,
-  placeholder,
-}: {
-  options: string[];
-  selected: string | null;
-  onChange: (value: string | null) => void;
-  placeholder: string;
-}) {
-  return (
-    <select
-      value={selected || ''}
-      onChange={(e) => onChange(e.target.value || null)}
-      className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-accent-primary focus:border-highlight-blue transition-colors"
-    >
-      <option value="">{placeholder}</option>
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  );
-}
 
 function MultiSelect({
   options,
@@ -232,19 +225,21 @@ function MultiSelect({
   };
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ zIndex: isOpen ? 10002 : 'auto' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-dark-800 border border-dark-600 rounded-lg px-4 py-2 text-left text-accent-primary focus:border-highlight-blue transition-colors flex items-center justify-between"
+        className="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg px-4 py-2 text-left text-gray-900 dark:text-accent-primary focus:border-highlight-blue transition-colors flex items-center justify-between hover:border-gray-400 dark:hover:border-dark-500"
       >
-        <span className={clsx(selected.length === 0 && 'text-accent-tertiary')}>
+        <span className={clsx(
+          selected.length === 0 && 'text-gray-400 dark:text-accent-tertiary'
+        )}>
           {selected.length > 0
             ? `${selected.length} selected`
             : placeholder}
         </span>
         <svg
           className={clsx(
-            'w-4 h-4 transition-transform',
+            'w-4 h-4 transition-transform text-gray-600 dark:text-accent-secondary',
             isOpen && 'rotate-180'
           )}
           fill="none"
@@ -267,12 +262,12 @@ function MultiSelect({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[100] w-full mt-2 glass-effect rounded-lg border border-dark-600 max-h-60 overflow-y-auto shadow-2xl"
+            className="absolute z-[9999] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 max-h-60 overflow-y-auto shadow-xl"
           >
             {options.map((option) => (
               <label
                 key={option}
-                className="flex items-center px-4 py-2 hover:bg-dark-700 cursor-pointer transition-colors"
+                className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-700 cursor-pointer transition-colors"
               >
                 <input
                   type="checkbox"
@@ -280,7 +275,7 @@ function MultiSelect({
                   onChange={() => toggleOption(option)}
                   className="mr-3 accent-highlight-blue"
                 />
-                <span className="text-accent-primary">{option}</span>
+                <span className="text-gray-900 dark:text-accent-primary">{option}</span>
               </label>
             ))}
           </motion.div>

@@ -7,16 +7,22 @@ import { useCallback, useMemo } from 'react';
 
 export type FilterState = {
   years: number[];
-  project: string | null;
-  subProject: string | null;
-  institute: string | null;
-  type: string | null;
+  projects: string[];
+  subProjects: string[];
+  institutes: string[];
+  types: string[];
+  causes: string[];
 };
 
 /**
  * Parse filter state from URL query params
  */
 export function parseFiltersFromQuery(query: Record<string, any>): FilterState {
+  const parseArray = (value: any): string[] => {
+    if (!value) return [];
+    return Array.isArray(value) ? value : [value];
+  };
+
   const years = query.years
     ? Array.isArray(query.years)
       ? query.years.map(Number).filter(Boolean)
@@ -25,10 +31,11 @@ export function parseFiltersFromQuery(query: Record<string, any>): FilterState {
 
   return {
     years,
-    project: query.project || null,
-    subProject: query.subProject || null,
-    institute: query.institute || null,
-    type: query.type || null,
+    projects: parseArray(query.projects),
+    subProjects: parseArray(query.subProjects),
+    institutes: parseArray(query.institutes),
+    types: parseArray(query.types),
+    causes: parseArray(query.causes),
   };
 }
 
@@ -41,17 +48,20 @@ export function filtersToQuery(filters: FilterState): Record<string, any> {
   if (filters.years.length > 0) {
     query.years = filters.years.map(String);
   }
-  if (filters.project) {
-    query.project = filters.project;
+  if (filters.projects.length > 0) {
+    query.projects = filters.projects;
   }
-  if (filters.subProject) {
-    query.subProject = filters.subProject;
+  if (filters.subProjects.length > 0) {
+    query.subProjects = filters.subProjects;
   }
-  if (filters.institute) {
-    query.institute = filters.institute;
+  if (filters.institutes.length > 0) {
+    query.institutes = filters.institutes;
   }
-  if (filters.type) {
-    query.type = filters.type;
+  if (filters.types.length > 0) {
+    query.types = filters.types;
+  }
+  if (filters.causes.length > 0) {
+    query.causes = filters.causes;
   }
 
   return query;
@@ -67,12 +77,13 @@ export function useFilters() {
   const queryString = useMemo(
     () => JSON.stringify({
       years: router.query.years,
-      project: router.query.project,
-      subProject: router.query.subProject,
-      institute: router.query.institute,
-      type: router.query.type,
+      projects: router.query.projects,
+      subProjects: router.query.subProjects,
+      institutes: router.query.institutes,
+      types: router.query.types,
+      causes: router.query.causes,
     }),
-    [router.query.years, router.query.project, router.query.subProject, router.query.institute, router.query.type]
+    [router.query.years, router.query.projects, router.query.subProjects, router.query.institutes, router.query.types, router.query.causes]
   );
 
   const filters = useMemo(
@@ -127,17 +138,20 @@ export function applyFiltersToQuery(
   if (filters.years.length > 0) {
     filtered = filtered.in('year_start', filters.years);
   }
-  if (filters.project) {
-    filtered = filtered.eq('project', filters.project);
+  if (filters.projects.length > 0) {
+    filtered = filtered.in('project', filters.projects);
   }
-  if (filters.subProject) {
-    filtered = filtered.eq('sub_project', filters.subProject);
+  if (filters.subProjects.length > 0) {
+    filtered = filtered.in('sub_project', filters.subProjects);
   }
-  if (filters.institute) {
-    filtered = filtered.eq('institute', filters.institute);
+  if (filters.institutes.length > 0) {
+    filtered = filtered.in('institute', filters.institutes);
   }
-  if (filters.type) {
-    filtered = filtered.eq('type_of_institution', filters.type);
+  if (filters.types.length > 0) {
+    filtered = filtered.in('type_of_institution', filters.types);
+  }
+  if (filters.causes.length > 0) {
+    filtered = filtered.in('cause', filters.causes);
   }
 
   return filtered;

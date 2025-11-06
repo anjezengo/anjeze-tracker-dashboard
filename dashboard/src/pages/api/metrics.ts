@@ -31,6 +31,19 @@ export type MetricsResponse = {
       total_quantity: number;
       count: number;
     }>;
+    byCause: Array<{
+      cause: string;
+      total_beneficiaries: number;
+      total_amount: number;
+      count: number;
+    }>;
+    remarksQuantity: Array<{
+      remarks: string;
+      quantity: number;
+      institute: string | null;
+      sub_project: string | null;
+      count: number;
+    }>;
     overall: {
       total_beneficiaries: number;
       total_amount: number;
@@ -38,6 +51,10 @@ export type MetricsResponse = {
       total_records: number;
       unique_projects: number;
       unique_sub_projects: number;
+      unique_causes: number;
+      project_list: string[];
+      sub_project_list: string[];
+      cause_list: string[];
     };
   };
   error?: string;
@@ -52,18 +69,8 @@ export default async function handler(
   }
 
   try {
-    // Parse filters from query
-    const queryFilters: any = {};
-    if (req.query.years) {
-      const yearsStr = Array.isArray(req.query.years) ? req.query.years[0] : req.query.years;
-      queryFilters.years = yearsStr.split(',').map(Number);
-    }
-    if (req.query.project) queryFilters.project = req.query.project;
-    if (req.query.subProject) queryFilters.subProject = req.query.subProject;
-    if (req.query.institute) queryFilters.institute = req.query.institute;
-    if (req.query.type) queryFilters.type = req.query.type;
-
-    const filters = parseFiltersFromQuery(queryFilters);
+    // Parse filters from query (arrays are already passed correctly by Next.js)
+    const filters = parseFiltersFromQuery(req.query);
 
     // Build base query
     let baseQuery = supabase.from('facts_clean').select('*');
@@ -81,6 +88,8 @@ export default async function handler(
         data: {
           bySubProject: [],
           byYear: [],
+          byCause: [],
+          remarksQuantity: [],
           overall: {
             total_beneficiaries: 0,
             total_amount: 0,
@@ -88,6 +97,10 @@ export default async function handler(
             total_records: 0,
             unique_projects: 0,
             unique_sub_projects: 0,
+            unique_causes: 0,
+            project_list: [],
+            sub_project_list: [],
+            cause_list: [],
           },
         },
       });
@@ -108,8 +121,23 @@ export default async function handler(
       count: number;
     }>();
 
+    const byCauseMap = new Map<string, {
+      total_beneficiaries: number;
+      total_amount: number;
+      count: number;
+    }>();
+
+    // Aggregate remarks + quantity (where both exist)
+    const remarksQuantityMap = new Map<string, {
+      quantity: number;
+      institute: string | null;
+      sub_project: string | null;
+      count: number;
+    }>();
+
     const uniqueProjects = new Set<string>();
     const uniqueSubProjects = new Set<string>();
+    const uniqueCauses = new Set<string>();
     let totalBeneficiaries = 0;
     let totalAmount = 0;
     let totalQuantity = 0;
@@ -150,8 +178,47 @@ export default async function handler(
         byYearMap.set(row.year_start, current);
       }
 
+      // By cause
+      if (row.cause) {
+        uniqueCauses.add(row.cause);
+        const current = byCauseMap.get(row.cause) || {
+          total_beneficiaries: 0,
+          total_amount: 0,
+          count: 0,
+        };
+
+        current.total_beneficiaries += row.beneficiaries || 0;
+        current.total_amount += row.amount || 0;
+        current.count += 1;
+
+        byCauseMap.set(row.cause, current);
+      }
+
+      // Remarks + Quantity (only where BOTH exist)
+      if (row.remarks && row.quantity && row.quantity > 0) {
+        const current = remarksQuantityMap.get(row.remarks) || {
+          quantity: 0,
+          institute: row.institute || null,
+          sub_project: row.sub_project || null,
+          count: 0,
+        };
+
+        current.quantity += row.quantity;
+        current.count += 1;
+        // Keep the first institute/sub_project we see for this remark
+        if (!current.institute && row.institute) {
+          current.institute = row.institute;
+        }
+        if (!current.sub_project && row.sub_project) {
+          current.sub_project = row.sub_project;
+        }
+
+        remarksQuantityMap.set(row.remarks, current);
+      }
+
       // Overall
       if (row.project) uniqueProjects.add(row.project);
+      if (row.sub_project) uniqueSubProjects.add(row.sub_project);
       totalBeneficiaries += row.beneficiaries || 0;
       totalAmount += row.amount || 0;
       totalQuantity += row.quantity || 0;
@@ -166,11 +233,22 @@ export default async function handler(
       .map(([year_start, stats]) => ({ year_start, ...stats }))
       .sort((a, b) => a.year_start - b.year_start);
 
+    const byCause = Array.from(byCauseMap.entries())
+      .map(([cause, stats]) => ({ cause, ...stats }))
+      .sort((a, b) => b.total_beneficiaries - a.total_beneficiaries);
+
+    const remarksQuantity = Array.from(remarksQuantityMap.entries())
+      .map(([remarks, data]) => ({ remarks, ...data }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 20); // Limit to top 20 items
+
     return res.status(200).json({
       success: true,
       data: {
         bySubProject,
         byYear,
+        byCause,
+        remarksQuantity,
         overall: {
           total_beneficiaries: totalBeneficiaries,
           total_amount: totalAmount,
@@ -178,6 +256,10 @@ export default async function handler(
           total_records: rows.length,
           unique_projects: uniqueProjects.size,
           unique_sub_projects: uniqueSubProjects.size,
+          unique_causes: uniqueCauses.size,
+          project_list: Array.from(uniqueProjects).sort(),
+          sub_project_list: Array.from(uniqueSubProjects).sort(),
+          cause_list: Array.from(uniqueCauses).sort(),
         },
       },
     });

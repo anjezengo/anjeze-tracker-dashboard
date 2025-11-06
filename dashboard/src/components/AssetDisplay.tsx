@@ -12,9 +12,12 @@ export function AssetDisplay() {
   const [asset, setAsset] = useState<AssetRow | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Show asset when exactly one sub-project is selected
+  const selectedSubProject = filters.subProjects.length === 1 ? filters.subProjects[0] : null;
+
   useEffect(() => {
     async function fetchAsset() {
-      if (!filters.subProject) {
+      if (!selectedSubProject) {
         setAsset(null);
         return;
       }
@@ -22,7 +25,7 @@ export function AssetDisplay() {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/assets?subProject=${encodeURIComponent(filters.subProject)}`
+          `/api/assets?subProject=${encodeURIComponent(selectedSubProject)}`
         );
         const result = await response.json();
 
@@ -40,9 +43,9 @@ export function AssetDisplay() {
     }
 
     fetchAsset();
-  }, [filters.subProject]);
+  }, [selectedSubProject]);
 
-  if (!filters.subProject) {
+  if (!selectedSubProject) {
     return null;
   }
 
@@ -70,7 +73,7 @@ export function AssetDisplay() {
           className="glass-effect rounded-xl p-6 overflow-hidden"
         >
           <h3 className="text-xl font-semibold text-accent-primary mb-4">
-            {filters.subProject}
+            {selectedSubProject}
           </h3>
 
           {asset.image_url && (
@@ -119,7 +122,7 @@ export function AssetDisplay() {
           className="glass-effect rounded-xl p-6"
         >
           <h3 className="text-xl font-semibold text-accent-primary mb-4">
-            {filters.subProject}
+            {selectedSubProject}
           </h3>
           <p className="text-accent-secondary">
             No asset information found for this sub-project.

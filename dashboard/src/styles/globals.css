@@ -3,9 +3,35 @@
 @tailwind utilities;
 
 :root {
+  /* Light mode (default) */
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 245, 245, 245;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --scrollbar-track: #f5f5f5;
+  --scrollbar-thumb: #d1d1d1;
+  --scrollbar-thumb-hover: #c1c1c1;
+  --shimmer-start: #f5f5f5;
+  --shimmer-mid: #e5e5e5;
+  --tooltip-bg: #f5f5f5;
+  --tooltip-border: #d1d1d1;
+}
+
+.dark {
+  /* Dark mode */
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 10, 10, 10;
+  --glass-bg: rgba(18, 18, 18, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --scrollbar-track: #0a0a0a;
+  --scrollbar-thumb: #2e2e2e;
+  --scrollbar-thumb-hover: #3e3e3e;
+  --shimmer-start: #0a0a0a;
+  --shimmer-mid: #1a1a1a;
+  --tooltip-bg: #1a1a1a;
+  --tooltip-border: #2e2e2e;
 }
 
 * {
@@ -42,16 +68,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2e2e2e;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3e3e3e;
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Smooth transitions */
@@ -87,10 +113,10 @@ select:focus-visible {
   animation: shimmer 2s infinite;
   background: linear-gradient(
     to right,
-    #0a0a0a 0%,
-    #1a1a1a 20%,
-    #0a0a0a 40%,
-    #0a0a0a 100%
+    var(--shimmer-start) 0%,
+    var(--shimmer-mid) 20%,
+    var(--shimmer-start) 40%,
+    var(--shimmer-start) 100%
   );
   background-size: 1000px 100%;
 }
@@ -101,20 +127,30 @@ select:focus-visible {
 }
 
 .recharts-default-tooltip {
-  background-color: #1a1a1a !important;
-  border: 1px solid #2e2e2e !important;
+  background-color: var(--tooltip-bg) !important;
+  border: 1px solid var(--tooltip-border) !important;
   border-radius: 8px !important;
   padding: 12px !important;
 }
 
-.recharts-tooltip-label {
+.dark .recharts-tooltip-label {
   color: #ffffff !important;
   font-weight: 600 !important;
   margin-bottom: 8px !important;
 }
 
-.recharts-tooltip-item {
+.dark .recharts-tooltip-item {
   color: #a3a3a3 !important;
+}
+
+.light .recharts-tooltip-label {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+}
+
+.light .recharts-tooltip-item {
+  color: #5c5c5c !important;
 }
 
 /* Custom utility classes */
@@ -124,8 +160,8 @@ select:focus-visible {
   }
 
   .glass-effect {
-    background: rgba(18, 18, 18, 0.8);
+    background: var(--glass-bg);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
   }
 }

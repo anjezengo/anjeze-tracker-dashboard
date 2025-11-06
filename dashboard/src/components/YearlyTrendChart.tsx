@@ -36,12 +36,23 @@ export function YearlyTrendChart() {
         // Build query string from filters
         const params = new URLSearchParams();
         if (filters.years.length > 0) {
-          params.set('years', filters.years.join(','));
+          filters.years.forEach(y => params.append('years', String(y)));
         }
-        if (filters.project) params.set('project', filters.project);
-        if (filters.subProject) params.set('subProject', filters.subProject);
-        if (filters.institute) params.set('institute', filters.institute);
-        if (filters.type) params.set('type', filters.type);
+        if (filters.projects.length > 0) {
+          filters.projects.forEach(p => params.append('projects', p));
+        }
+        if (filters.subProjects.length > 0) {
+          filters.subProjects.forEach(s => params.append('subProjects', s));
+        }
+        if (filters.institutes.length > 0) {
+          filters.institutes.forEach(i => params.append('institutes', i));
+        }
+        if (filters.types.length > 0) {
+          filters.types.forEach(t => params.append('types', t));
+        }
+        if (filters.causes.length > 0) {
+          filters.causes.forEach(c => params.append('causes', c));
+        }
 
         const response = await fetch(`/api/metrics?${params.toString()}`);
         const result = await response.json();
