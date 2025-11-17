@@ -215,6 +215,7 @@ function MultiSelect({
   placeholder: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const toggleOption = (option: string) => {
     if (selected.includes(option)) {
@@ -223,6 +224,10 @@ function MultiSelect({
       onChange([...selected, option]);
     }
   };
+
+  const filteredOptions = options.filter(option =>
+    option.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="relative" style={{ zIndex: isOpen ? 10002 : 'auto' }}>
@@ -261,23 +266,47 @@ function MultiSelect({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            onAnimationComplete={(definition: any) => {
+              if (definition.opacity === 0) setSearchTerm('');
+            }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[9999] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 max-h-60 overflow-y-auto shadow-xl"
+            className="absolute z-[9999] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 shadow-xl"
           >
-            {options.map((option) => (
-              <label
-                key={option}
-                className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-700 cursor-pointer transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(option)}
-                  onChange={() => toggleOption(option)}
-                  className="mr-3 accent-highlight-blue"
-                />
-                <span className="text-gray-900 dark:text-accent-primary">{option}</span>
-              </label>
-            ))}
+            {/* Search Input */}
+            <div className="p-2 border-b border-gray-200 dark:border-dark-600">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Type to search..."
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded text-gray-900 dark:text-accent-primary placeholder-gray-400 dark:placeholder-accent-tertiary focus:outline-none focus:border-highlight-blue"
+              />
+            </div>
+
+            {/* Options List */}
+            <div className="max-h-80 overflow-y-auto">
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((option) => (
+                  <label
+                    key={option}
+                    className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-dark-700 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(option)}
+                      onChange={() => toggleOption(option)}
+                      className="mr-3 accent-highlight-blue"
+                    />
+                    <span className="text-gray-900 dark:text-accent-primary">{option}</span>
+                  </label>
+                ))
+              ) : (
+                <div className="px-4 py-3 text-sm text-gray-500 dark:text-accent-tertiary text-center">
+                  No matches found
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

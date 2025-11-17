@@ -63,7 +63,6 @@ export function StatsCards() {
         const result = await response.json();
 
         if (result.success && result.data) {
-          const prevStats = { ...stats };
           const newStats = {
             totalBeneficiaries: result.data.overall.total_beneficiaries,
             totalAmount: result.data.overall.total_amount,
@@ -77,32 +76,6 @@ export function StatsCards() {
           };
 
           setStats(newStats);
-
-          // Animate number changes
-          statsRefs.current.forEach((ref, index) => {
-            if (ref) {
-              const key = Object.keys(newStats)[index] as keyof Stats;
-              const from = prevStats[key];
-              const to = newStats[key];
-
-              gsap.fromTo(
-                ref,
-                { textContent: from },
-                {
-                  textContent: to,
-                  duration: 1.5,
-                  ease: 'power2.out',
-                  snap: { textContent: 1 },
-                  onUpdate: function () {
-                    const current = Math.round(
-                      parseFloat(ref.textContent || '0')
-                    );
-                    ref.textContent = current.toLocaleString();
-                  },
-                }
-              );
-            }
-          });
         }
       } catch (error) {
         console.error('Error fetching stats:', error);

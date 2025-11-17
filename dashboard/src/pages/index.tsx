@@ -34,7 +34,7 @@ export default function Home() {
           className="text-center mb-8"
         >
           <h2 className="text-4xl font-bold text-gray-900 dark:text-accent-primary mb-2">
-            Welcome to Anjeze Tracker
+            Welcome to the Anjeze Tracker
           </h2>
           <p className="text-lg text-gray-700 dark:text-accent-secondary">
             Monitor impact, track beneficiaries, and visualize project outcomes
