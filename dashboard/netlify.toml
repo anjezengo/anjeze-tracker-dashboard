@@ -8,6 +8,17 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Netlify Functions Configuration
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Scheduled function for Google Sheets sync
+# Runs every 6 hours: 12:00 AM, 6:00 AM, 12:00 PM, 6:00 PM UTC
+[[functions]]
+  name = "scheduled-sync"
+  schedule = "0 */6 * * *"
+
 # Redirects for Next.js
 [[redirects]]
   from = "/*"
