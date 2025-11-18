@@ -13,11 +13,8 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Scheduled function for Google Sheets sync
-# Runs every 6 hours: 12:00 AM, 6:00 AM, 12:00 PM, 6:00 PM UTC
-[[functions]]
-  name = "scheduled-sync"
-  schedule = "0 */6 * * *"
+# Note: Scheduled function (runs every 6 hours) is configured in the function code itself
+# See: netlify/functions/scheduled-sync.ts
 
 # Redirects for Next.js
 [[redirects]]
