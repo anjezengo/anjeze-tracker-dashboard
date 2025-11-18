@@ -42,9 +42,14 @@ export async function fetchSheetData(): Promise<RawSheetRow[]> {
   // Convert to objects (first row = headers)
   const [headers, ...dataRows] = rows;
 
+  // Normalize headers (remove newlines, trim spaces)
+  const normalizedHeaders = headers.map(h =>
+    h.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+  );
+
   return dataRows.map(row => {
     const obj: any = {};
-    headers.forEach((header, index) => {
+    normalizedHeaders.forEach((header, index) => {
       // Google Sheets returns empty strings for empty cells, convert to null
       obj[header] = row[index] || null;
     });
