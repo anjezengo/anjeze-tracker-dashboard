@@ -114,32 +114,38 @@ export default async function handler(
     console.log('🧹 Cleaning and transforming rows...');
     const cleanedRows = rawRows.map(cleanRow);
 
-    // Sync to Supabase (UPSERT using row_hash to avoid duplicates)
-    console.log('💾 Syncing to Supabase...');
+    // Sync to Supabase using BATCH UPSERT (much faster!)
+    console.log('💾 Syncing to Supabase in batches...');
     let synced = 0;
     let errors = 0;
 
-    for (const row of cleanedRows) {
+    // Process in batches of 100 rows to avoid timeout
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < cleanedRows.length; i += BATCH_SIZE) {
+      const batch = cleanedRows.slice(i, i + BATCH_SIZE);
+
       try {
-        const { error: upsertError } = await supabase
+        const { error: upsertError, count } = await supabase
           .from('tracker_raw')
-          .upsert(row, {
+          .upsert(batch, {
             onConflict: 'row_hash',
+            count: 'exact',
           });
 
         if (upsertError) {
-          console.error('Error upserting row:', upsertError);
-          errors++;
+          console.error(`Error upserting batch ${i / BATCH_SIZE + 1}:`, upsertError);
+          errors += batch.length;
         } else {
-          synced++;
+          synced += batch.length;
+          console.log(`✓ Batch ${i / BATCH_SIZE + 1}: Synced ${batch.length} rows`);
         }
       } catch (err) {
-        console.error('Exception upserting row:', err);
-        errors++;
+        console.error(`Exception upserting batch ${i / BATCH_SIZE + 1}:`, err);
+        errors += batch.length;
       }
     }
 
-    console.log(`✓ Synced ${synced}/${cleanedRows.length} rows`);
+    console.log(`✓ Total synced: ${synced}/${cleanedRows.length} rows`);
 
     // Update sync metadata
     const newRowCount = totalRowsInSheet;
