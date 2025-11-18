@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ADMIN_CREDENTIALS = {
   name: 'Jinesh Mehta',
   email: 'admin@anjeze.org',
-  password: 'Trustor1949@',
+  password: 'Trustor@1949',
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
