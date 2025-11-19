@@ -87,9 +87,14 @@ export async function fetchNewRows(lastSyncedRowCount: number): Promise<RawSheet
   // Get only the new rows (skip already synced rows)
   const newRows = dataRows.slice(lastSyncedRowCount);
 
+  // Normalize headers (remove newlines, trim spaces)
+  const normalizedHeaders = headers.map(h =>
+    h.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
+  );
+
   return newRows.map(row => {
     const obj: any = {};
-    headers.forEach((header, index) => {
+    normalizedHeaders.forEach((header, index) => {
       obj[header] = row[index] || null;
     });
     return obj as RawSheetRow;

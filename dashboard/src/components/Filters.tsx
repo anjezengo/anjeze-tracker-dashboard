@@ -33,34 +33,21 @@ export function Filters() {
     async function fetchOptions() {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.from('facts_clean').select('*');
+        // Use metrics API to get distinct values (already handles pagination)
+        const response = await fetch('/api/metrics');
+        const result = await response.json();
 
-        if (error) throw error;
-        if (!data) return;
-
-        const yearsSet = new Set<number>();
-        const projectsSet = new Set<string>();
-        const subProjectsSet = new Set<string>();
-        const institutesSet = new Set<string>();
-        const typesSet = new Set<string>();
-        const causesSet = new Set<string>();
-
-        data.forEach((row) => {
-          if (row.year_start) yearsSet.add(row.year_start);
-          if (row.project) projectsSet.add(row.project);
-          if (row.sub_project) subProjectsSet.add(row.sub_project);
-          if (row.institute) institutesSet.add(row.institute);
-          if (row.type_of_institution) typesSet.add(row.type_of_institution);
-          if (row.cause) causesSet.add(row.cause);
-        });
+        if (!result.success || !result.data) {
+          throw new Error('Failed to fetch metrics');
+        }
 
         setOptions({
-          years: Array.from(yearsSet).sort((a, b) => a - b),
-          projects: Array.from(projectsSet).sort(),
-          subProjects: Array.from(subProjectsSet).sort(),
-          institutes: Array.from(institutesSet).sort(),
-          types: Array.from(typesSet).sort(),
-          causes: Array.from(causesSet).sort(),
+          years: result.data.byYear.map((item: any) => item.year_start).sort((a: number, b: number) => a - b),
+          projects: result.data.overall.project_list || [],
+          subProjects: result.data.overall.sub_project_list || [],
+          institutes: [], // Not available in current API, would need to add
+          types: [], // Not available in current API, would need to add
+          causes: result.data.overall.cause_list || [],
         });
       } catch (error) {
         console.error('Error fetching filter options:', error);
@@ -98,7 +85,7 @@ export function Filters() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="glass-effect rounded-xl p-6 relative z-50"
+      className="glass-effect rounded-xl p-6"
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-accent-primary">Filters</h2>
@@ -117,7 +104,7 @@ export function Filters() {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 relative z-[100]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* Years (Multi-select) */}
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
@@ -230,7 +217,7 @@ function MultiSelect({
   );
 
   return (
-    <div className="relative" style={{ zIndex: isOpen ? 10002 : 'auto' }}>
+    <div className="relative" style={{ zIndex: isOpen ? 1000 : 'auto' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg px-4 py-2 text-left text-gray-900 dark:text-accent-primary focus:border-highlight-blue transition-colors flex items-center justify-between hover:border-gray-400 dark:hover:border-dark-500"
@@ -270,7 +257,7 @@ function MultiSelect({
               if (definition.opacity === 0) setSearchTerm('');
             }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[9999] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 shadow-xl"
+            className="absolute z-[1100] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 shadow-xl max-h-96 overflow-visible"
           >
             {/* Search Input */}
             <div className="p-2 border-b border-gray-200 dark:border-dark-600">

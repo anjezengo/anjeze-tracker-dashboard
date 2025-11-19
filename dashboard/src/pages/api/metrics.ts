@@ -72,15 +72,40 @@ export default async function handler(
     // Parse filters from query (arrays are already passed correctly by Next.js)
     const filters = parseFiltersFromQuery(req.query);
 
-    // Build base query
-    let baseQuery = supabase.from('facts_clean').select('*');
-    baseQuery = applyFiltersToQuery(baseQuery, filters);
+    // Fetch all rows with pagination (Supabase has 1000 row limit per request)
+    console.log('🔍 Fetching all data with pagination...');
+    let allRows: any[] = [];
+    let page = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
 
-    const { data: rows, error } = await baseQuery;
+    while (hasMore) {
+      const start = page * PAGE_SIZE;
+      const end = start + PAGE_SIZE - 1;
 
-    if (error) {
-      throw error;
+      let pageQuery = supabase.from('facts_clean').select('*', { count: 'exact' }).range(start, end);
+      pageQuery = applyFiltersToQuery(pageQuery, filters);
+
+      const { data, error, count } = await pageQuery;
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        allRows = allRows.concat(data);
+        console.log(`  ✓ Page ${page + 1}: Fetched ${data.length} rows (total so far: ${allRows.length}/${count})`);
+        hasMore = data.length === PAGE_SIZE; // Continue if we got a full page
+        page++;
+      } else {
+        hasMore = false;
+      }
     }
+
+    const rows = allRows;
+    console.log(`✅ Fetched all ${rows.length} rows`);
+
+    const error = null; // Already handled above
 
     if (!rows) {
       return res.status(200).json({
