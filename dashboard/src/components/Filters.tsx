@@ -33,21 +33,34 @@ export function Filters() {
     async function fetchOptions() {
       setIsLoading(true);
       try {
-        // Use metrics API to get distinct values (already handles pagination)
-        const response = await fetch('/api/metrics');
-        const result = await response.json();
+        const { data, error } = await supabase.from('facts_clean').select('*');
 
-        if (!result.success || !result.data) {
-          throw new Error('Failed to fetch metrics');
-        }
+        if (error) throw error;
+        if (!data) return;
+
+        const yearsSet = new Set<number>();
+        const projectsSet = new Set<string>();
+        const subProjectsSet = new Set<string>();
+        const institutesSet = new Set<string>();
+        const typesSet = new Set<string>();
+        const causesSet = new Set<string>();
+
+        data.forEach((row) => {
+          if (row.year_start) yearsSet.add(row.year_start);
+          if (row.project) projectsSet.add(row.project);
+          if (row.sub_project) subProjectsSet.add(row.sub_project);
+          if (row.institute) institutesSet.add(row.institute);
+          if (row.type_of_institution) typesSet.add(row.type_of_institution);
+          if (row.cause) causesSet.add(row.cause);
+        });
 
         setOptions({
-          years: result.data.byYear.map((item: any) => item.year_start).sort((a: number, b: number) => a - b),
-          projects: result.data.overall.project_list || [],
-          subProjects: result.data.overall.sub_project_list || [],
-          institutes: [], // Not available in current API, would need to add
-          types: [], // Not available in current API, would need to add
-          causes: result.data.overall.cause_list || [],
+          years: Array.from(yearsSet).sort((a, b) => a - b),
+          projects: Array.from(projectsSet).sort(),
+          subProjects: Array.from(subProjectsSet).sort(),
+          institutes: Array.from(institutesSet).sort(),
+          types: Array.from(typesSet).sort(),
+          causes: Array.from(causesSet).sort(),
         });
       } catch (error) {
         console.error('Error fetching filter options:', error);
