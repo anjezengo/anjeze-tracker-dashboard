@@ -33,10 +33,31 @@ export function Filters() {
     async function fetchOptions() {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase.from('facts_clean').select('*');
+        // Fetch all rows with pagination (Supabase has 1000 row limit per request)
+        let allRows: any[] = [];
+        let page = 0;
+        const PAGE_SIZE = 1000;
+        let hasMore = true;
 
-        if (error) throw error;
-        if (!data) return;
+        while (hasMore) {
+          const start = page * PAGE_SIZE;
+          const end = start + PAGE_SIZE - 1;
+
+          const { data, error } = await supabase
+            .from('facts_clean')
+            .select('*')
+            .range(start, end);
+
+          if (error) throw error;
+
+          if (data && data.length > 0) {
+            allRows = allRows.concat(data);
+            hasMore = data.length === PAGE_SIZE; // Continue if we got a full page
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
 
         const yearsSet = new Set<number>();
         const projectsSet = new Set<string>();
@@ -45,7 +66,7 @@ export function Filters() {
         const typesSet = new Set<string>();
         const causesSet = new Set<string>();
 
-        data.forEach((row) => {
+        allRows.forEach((row) => {
           if (row.year_start) yearsSet.add(row.year_start);
           if (row.project) projectsSet.add(row.project);
           if (row.sub_project) subProjectsSet.add(row.sub_project);

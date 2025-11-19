@@ -92,13 +92,6 @@ export async function fetchNewRows(lastSyncedRowCount: number): Promise<RawSheet
     h.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim()
   );
 
-  // Debug: Log headers to see what we're getting
-  console.log('📋 Normalized headers from Google Sheets:');
-  console.log(normalizedHeaders.slice(0, 20)); // First 20 headers
-  console.log('🔍 Looking for Institute and Type headers:');
-  console.log('- Institute variants:', normalizedHeaders.filter(h => h.toLowerCase().includes('institute')));
-  console.log('- Type variants:', normalizedHeaders.filter(h => h.toLowerCase().includes('type')));
-
   return newRows.map(row => {
     const obj: any = {};
     normalizedHeaders.forEach((header, index) => {
