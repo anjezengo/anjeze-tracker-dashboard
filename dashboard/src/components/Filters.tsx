@@ -85,7 +85,7 @@ export function Filters() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="glass-effect rounded-xl p-6"
+      className="glass-effect rounded-xl p-6 relative z-50"
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-accent-primary">Filters</h2>
@@ -104,7 +104,7 @@ export function Filters() {
         </AnimatePresence>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 relative z-[100]">
         {/* Years (Multi-select) */}
         <div className="relative">
           <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
@@ -217,7 +217,7 @@ function MultiSelect({
   );
 
   return (
-    <div className="relative" style={{ zIndex: isOpen ? 1000 : 'auto' }}>
+    <div className="relative" style={{ zIndex: isOpen ? 10002 : 'auto' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg px-4 py-2 text-left text-gray-900 dark:text-accent-primary focus:border-highlight-blue transition-colors flex items-center justify-between hover:border-gray-400 dark:hover:border-dark-500"
@@ -257,7 +257,7 @@ function MultiSelect({
               if (definition.opacity === 0) setSearchTerm('');
             }}
             transition={{ duration: 0.2 }}
-            className="absolute z-[1100] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 shadow-xl max-h-96 overflow-visible"
+            className="absolute z-[9999] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 shadow-xl"
           >
             {/* Search Input */}
             <div className="p-2 border-b border-gray-200 dark:border-dark-600">
