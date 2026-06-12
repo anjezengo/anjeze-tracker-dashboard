@@ -8,6 +8,7 @@ import gsap from 'gsap';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { OneDriveSyncButton } from '@/components/OneDriveSyncButton';
 
 function AppContent({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -76,6 +77,9 @@ function AppContent({ Component, pageProps }: AppProps) {
               >
                 Upload Excel
               </Link>
+
+              {/* OneDrive Sync */}
+              {isAuthenticated && <OneDriveSyncButton />}
 
               {/* User Info */}
               {isAuthenticated && user && (
