@@ -5,8 +5,7 @@ const nextConfig = {
   images: {
     domains: ['your-project.supabase.co'],
   },
-  // Netlify deployment optimization
-  output: 'standalone',
+
 }
 
 module.exports = nextConfig

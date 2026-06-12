@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type SyncResult = {
@@ -18,6 +19,7 @@ export function OneDriveSyncButton() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const router = useRouter();
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -129,14 +131,24 @@ export function OneDriveSyncButton() {
                 )}
               </>
             ) : (
-              <div className="flex items-start gap-2">
-                <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="font-semibold text-red-700 dark:text-red-400 text-sm">Sync failed</p>
-                  <p className="text-xs text-red-600 dark:text-red-300 mt-1">{result.error}</p>
+              <div>
+                <div className="flex items-start gap-2 mb-3">
+                  <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-semibold text-amber-700 dark:text-amber-400 text-sm">OneDrive requires sign-in</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                      Microsoft blocks direct server downloads. Download the file from OneDrive and upload it below.
+                    </p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => { setShowResult(false); router.push('/upload'); }}
+                  className="w-full py-2 px-3 bg-highlight-blue hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                >
+                  Go to Upload page →
+                </button>
               </div>
             )}
           </motion.div>
