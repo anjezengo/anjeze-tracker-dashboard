@@ -1,18 +1,6 @@
-/**
- * API Route: /api/metrics
- * Returns aggregated metrics filtered by query params
- *
- * Query params:
- * - years: comma-separated years (e.g., "2018,2019")
- * - subProject: sub-project name
- * - project: project name
- * - institute: institute name
- * - type: institution type
- */
-
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabase } from '@/lib/supabase';
-import { FilterState, parseFiltersFromQuery, applyFiltersToQuery } from '@/lib/filters';
+import { parseFiltersFromQuery, buildSqlFilters } from '@/lib/filters';
+import { getPool } from '@/lib/db';
 
 export type MetricsResponse = {
   success: boolean;
@@ -31,8 +19,8 @@ export type MetricsResponse = {
       total_quantity: number;
       count: number;
     }>;
-    byCause: Array<{
-      cause: string;
+    byInitiatives: Array<{
+      initiatives: string;
       total_beneficiaries: number;
       total_amount: number;
       count: number;
@@ -51,248 +39,120 @@ export type MetricsResponse = {
       total_records: number;
       unique_projects: number;
       unique_sub_projects: number;
-      unique_causes: number;
+      unique_initiatives: number;
       project_list: string[];
       sub_project_list: string[];
-      cause_list: string[];
+      initiatives_list: string[];
     };
   };
   error?: string;
 };
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<MetricsResponse>
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse<MetricsResponse>) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
-    // Parse filters from query (arrays are already passed correctly by Next.js)
     const filters = parseFiltersFromQuery(req.query);
+    const { clause, params } = buildSqlFilters(filters);
+    const pool = await getPool();
 
-    // Fetch all rows with pagination (Supabase has 1000 row limit per request)
-    console.log('🔍 Fetching all data with pagination...');
-    let allRows: any[] = [];
-    let page = 0;
-    const PAGE_SIZE = 1000;
-    let hasMore = true;
+    const [subProjRes, yearRes, initiativesRes, overallRes, remarksRes] = await Promise.all([
+      pool.query(`
+        SELECT
+          sub_project,
+          COALESCE(SUM(beneficiaries), 0)::float AS total_beneficiaries,
+          COALESCE(SUM(amount), 0)::float AS total_amount,
+          COALESCE(SUM(quantity), 0)::float AS total_quantity,
+          COUNT(*)::int AS count
+        FROM facts_clean
+        ${clause}
+        GROUP BY sub_project
+        ORDER BY total_beneficiaries DESC NULLS LAST
+      `, params),
 
-    while (hasMore) {
-      const start = page * PAGE_SIZE;
-      const end = start + PAGE_SIZE - 1;
+      pool.query(`
+        SELECT
+          year_start,
+          COALESCE(SUM(beneficiaries), 0)::float AS total_beneficiaries,
+          COALESCE(SUM(amount), 0)::float AS total_amount,
+          COALESCE(SUM(quantity), 0)::float AS total_quantity,
+          COUNT(*)::int AS count
+        FROM facts_clean
+        ${clause}
+        GROUP BY year_start
+        ORDER BY year_start NULLS LAST
+      `, params),
 
-      let pageQuery = supabase.from('facts_clean').select('*', { count: 'exact' }).range(start, end);
-      pageQuery = applyFiltersToQuery(pageQuery, filters);
+      pool.query(`
+        SELECT
+          initiatives,
+          COALESCE(SUM(beneficiaries), 0)::float AS total_beneficiaries,
+          COALESCE(SUM(amount), 0)::float AS total_amount,
+          COUNT(*)::int AS count
+        FROM facts_clean
+        ${clause}
+        GROUP BY initiatives
+        ORDER BY total_beneficiaries DESC NULLS LAST
+      `, params),
 
-      const { data, error, count } = await pageQuery;
+      pool.query(`
+        SELECT
+          COALESCE(SUM(beneficiaries), 0)::float AS total_beneficiaries,
+          COALESCE(SUM(amount), 0)::float AS total_amount,
+          COALESCE(SUM(quantity), 0)::float AS total_quantity,
+          COUNT(*)::int AS total_records,
+          COUNT(DISTINCT project)::int AS unique_projects,
+          COUNT(DISTINCT sub_project)::int AS unique_sub_projects,
+          COUNT(DISTINCT initiatives)::int AS unique_initiatives,
+          ARRAY_AGG(DISTINCT project ORDER BY project) FILTER (WHERE project IS NOT NULL) AS project_list,
+          ARRAY_AGG(DISTINCT sub_project ORDER BY sub_project) FILTER (WHERE sub_project IS NOT NULL) AS sub_project_list,
+          ARRAY_AGG(DISTINCT initiatives ORDER BY initiatives) FILTER (WHERE initiatives IS NOT NULL) AS initiatives_list
+        FROM facts_clean
+        ${clause}
+      `, params),
 
-      if (error) {
-        throw error;
-      }
+      pool.query(`
+        SELECT
+          remarks,
+          SUM(quantity)::float AS quantity,
+          MIN(institute) AS institute,
+          MIN(sub_project) AS sub_project,
+          COUNT(*)::int AS count
+        FROM facts_clean
+        ${clause ? clause + ' AND' : 'WHERE'} remarks IS NOT NULL AND quantity > 0
+        GROUP BY remarks
+        ORDER BY quantity DESC
+        LIMIT 20
+      `, params),
+    ]);
 
-      if (data && data.length > 0) {
-        allRows = allRows.concat(data);
-        console.log(`  ✓ Page ${page + 1}: Fetched ${data.length} rows (total so far: ${allRows.length}/${count})`);
-        hasMore = data.length === PAGE_SIZE; // Continue if we got a full page
-        page++;
-      } else {
-        hasMore = false;
-      }
-    }
-
-    const rows = allRows;
-    console.log(`✅ Fetched all ${rows.length} rows`);
-
-    const error = null; // Already handled above
-
-    if (!rows) {
-      return res.status(200).json({
-        success: true,
-        data: {
-          bySubProject: [],
-          byYear: [],
-          byCause: [],
-          remarksQuantity: [],
-          overall: {
-            total_beneficiaries: 0,
-            total_amount: 0,
-            total_quantity: 0,
-            total_records: 0,
-            unique_projects: 0,
-            unique_sub_projects: 0,
-            unique_causes: 0,
-            project_list: [],
-            sub_project_list: [],
-            cause_list: [],
-          },
-        },
-      });
-    }
-
-    // Aggregate by sub-project
-    const bySubProjectMap = new Map<string, {
-      total_beneficiaries: number;
-      total_amount: number;
-      total_quantity: number;
-      count: number;
-    }>();
-
-    const byYearMap = new Map<number, {
-      total_beneficiaries: number;
-      total_amount: number;
-      total_quantity: number;
-      count: number;
-    }>();
-
-    const byCauseMap = new Map<string, {
-      total_beneficiaries: number;
-      total_amount: number;
-      count: number;
-    }>();
-
-    // Aggregate remarks + quantity (where both exist)
-    const remarksQuantityMap = new Map<string, {
-      quantity: number;
-      institute: string | null;
-      sub_project: string | null;
-      count: number;
-    }>();
-
-    const uniqueProjects = new Set<string>();
-    const uniqueSubProjects = new Set<string>();
-    const uniqueCauses = new Set<string>();
-    let totalBeneficiaries = 0;
-    let totalAmount = 0;
-    let totalQuantity = 0;
-
-    for (const row of rows) {
-      // By sub-project
-      if (row.sub_project) {
-        uniqueSubProjects.add(row.sub_project);
-        const current = bySubProjectMap.get(row.sub_project) || {
-          total_beneficiaries: 0,
-          total_amount: 0,
-          total_quantity: 0,
-          count: 0,
-        };
-
-        current.total_beneficiaries += row.beneficiaries || 0;
-        current.total_amount += row.amount || 0;
-        current.total_quantity += row.quantity || 0;
-        current.count += 1;
-
-        bySubProjectMap.set(row.sub_project, current);
-      }
-
-      // By year
-      if (row.year_start) {
-        const current = byYearMap.get(row.year_start) || {
-          total_beneficiaries: 0,
-          total_amount: 0,
-          total_quantity: 0,
-          count: 0,
-        };
-
-        current.total_beneficiaries += row.beneficiaries || 0;
-        current.total_amount += row.amount || 0;
-        current.total_quantity += row.quantity || 0;
-        current.count += 1;
-
-        byYearMap.set(row.year_start, current);
-      }
-
-      // By cause
-      if (row.cause) {
-        uniqueCauses.add(row.cause);
-        const current = byCauseMap.get(row.cause) || {
-          total_beneficiaries: 0,
-          total_amount: 0,
-          count: 0,
-        };
-
-        current.total_beneficiaries += row.beneficiaries || 0;
-        current.total_amount += row.amount || 0;
-        current.count += 1;
-
-        byCauseMap.set(row.cause, current);
-      }
-
-      // Remarks + Quantity (only where BOTH exist)
-      if (row.remarks && row.quantity && row.quantity > 0) {
-        const current = remarksQuantityMap.get(row.remarks) || {
-          quantity: 0,
-          institute: row.institute || null,
-          sub_project: row.sub_project || null,
-          count: 0,
-        };
-
-        current.quantity += row.quantity;
-        current.count += 1;
-        // Keep the first institute/sub_project we see for this remark
-        if (!current.institute && row.institute) {
-          current.institute = row.institute;
-        }
-        if (!current.sub_project && row.sub_project) {
-          current.sub_project = row.sub_project;
-        }
-
-        remarksQuantityMap.set(row.remarks, current);
-      }
-
-      // Overall
-      if (row.project) uniqueProjects.add(row.project);
-      if (row.sub_project) uniqueSubProjects.add(row.sub_project);
-      totalBeneficiaries += row.beneficiaries || 0;
-      totalAmount += row.amount || 0;
-      totalQuantity += row.quantity || 0;
-    }
-
-    // Convert maps to arrays
-    const bySubProject = Array.from(bySubProjectMap.entries())
-      .map(([sub_project, stats]) => ({ sub_project, ...stats }))
-      .sort((a, b) => b.total_beneficiaries - a.total_beneficiaries);
-
-    const byYear = Array.from(byYearMap.entries())
-      .map(([year_start, stats]) => ({ year_start, ...stats }))
-      .sort((a, b) => a.year_start - b.year_start);
-
-    const byCause = Array.from(byCauseMap.entries())
-      .map(([cause, stats]) => ({ cause, ...stats }))
-      .sort((a, b) => b.total_beneficiaries - a.total_beneficiaries);
-
-    const remarksQuantity = Array.from(remarksQuantityMap.entries())
-      .map(([remarks, data]) => ({ remarks, ...data }))
-      .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 20); // Limit to top 20 items
+    const overall = overallRes.rows[0] || {};
 
     return res.status(200).json({
       success: true,
       data: {
-        bySubProject,
-        byYear,
-        byCause,
-        remarksQuantity,
+        bySubProject: subProjRes.rows,
+        byYear: yearRes.rows,
+        byInitiatives: initiativesRes.rows,
+        remarksQuantity: remarksRes.rows,
         overall: {
-          total_beneficiaries: totalBeneficiaries,
-          total_amount: totalAmount,
-          total_quantity: totalQuantity,
-          total_records: rows.length,
-          unique_projects: uniqueProjects.size,
-          unique_sub_projects: uniqueSubProjects.size,
-          unique_causes: uniqueCauses.size,
-          project_list: Array.from(uniqueProjects).sort(),
-          sub_project_list: Array.from(uniqueSubProjects).sort(),
-          cause_list: Array.from(uniqueCauses).sort(),
+          total_beneficiaries: overall.total_beneficiaries || 0,
+          total_amount: overall.total_amount || 0,
+          total_quantity: overall.total_quantity || 0,
+          total_records: overall.total_records || 0,
+          unique_projects: overall.unique_projects || 0,
+          unique_sub_projects: overall.unique_sub_projects || 0,
+          unique_initiatives: overall.unique_initiatives || 0,
+          project_list: overall.project_list || [],
+          sub_project_list: overall.sub_project_list || [],
+          initiatives_list: overall.initiatives_list || [],
         },
       },
     });
   } catch (error: any) {
     console.error('Metrics API error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'Internal server error',
-    });
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 }

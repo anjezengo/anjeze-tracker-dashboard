@@ -6,34 +6,49 @@
  */
 
 import pg from 'pg';
+import dnsModule from 'dns';
 import dotenv from 'dotenv';
 
 const { Pool } = pg;
 
-// Load environment variables
 dotenv.config();
 
-// Validate environment variables
-function validateEnv() {
-  const required = ['PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD'];
-  const missing = required.filter(key => !process.env[key]);
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}\nPlease copy .env.example to .env and fill in your Supabase credentials.`);
-  }
+dnsModule.setServers(['8.8.8.8', '1.1.1.1']);
+async function resolveToIp(hostname) {
+  return new Promise((resolve) => {
+    dnsModule.resolve4(hostname, (err, addresses) => resolve(err ? null : addresses[0]));
+  });
 }
 
-// Create database connection pool
-function createPool() {
+function validateEnv() {
+  if (process.env.DATABASE_URL) return;
+  const required = ['PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD'];
+  const missing = required.filter(key => !process.env[key]);
+  if (missing.length > 0) throw new Error(`Missing env vars: ${missing.join(', ')}`);
+}
+
+async function createPool() {
+  const connStr = process.env.DATABASE_URL;
+  if (connStr) {
+    const url = new URL(connStr);
+    const ip = await resolveToIp(url.hostname);
+    return new Pool({
+      host: ip || url.hostname,
+      port: parseInt(url.port || '5432', 10),
+      database: url.pathname.slice(1),
+      user: url.username,
+      password: decodeURIComponent(url.password),
+      ssl: { rejectUnauthorized: false, ...(ip ? { servername: url.hostname } : {}) }
+    });
+  }
+  const ip = await resolveToIp(process.env.PGHOST);
   return new Pool({
-    host: process.env.PGHOST,
+    host: ip || process.env.PGHOST,
     port: parseInt(process.env.PGPORT, 10),
     database: process.env.PGDATABASE,
     user: process.env.PGUSER,
     password: process.env.PGPASSWORD,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false, ...(ip ? { servername: process.env.PGHOST } : {}) }
   });
 }
 
@@ -54,7 +69,7 @@ function getDescription(subProject) {
 
 // Main seed function
 async function seedAssets() {
-  const pool = createPool();
+  const pool = await createPool();
 
   try {
     console.log('🚀 Starting asset seeding process...\n');

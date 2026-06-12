@@ -60,14 +60,14 @@ export default function Home() {
         {/* Remarks & Quantity Visualization */}
         <RemarksQuantityVisualization />
 
-        {/* Cause Cards - Impact by Cause */}
+        {/* Initiative Cards - Impact by Initiatives */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.8 }}
         >
           <h3 className="text-2xl font-bold text-gray-900 dark:text-accent-primary mb-6 text-center">
-            Impact by Cause
+            Impact by Initiatives
           </h3>
           <CauseCards />
         </motion.div>

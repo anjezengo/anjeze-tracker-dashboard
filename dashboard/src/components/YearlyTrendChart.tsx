@@ -50,8 +50,8 @@ export function YearlyTrendChart() {
         if (filters.types.length > 0) {
           filters.types.forEach(t => params.append('types', t));
         }
-        if (filters.causes.length > 0) {
-          filters.causes.forEach(c => params.append('causes', c));
+        if (filters.initiatives.length > 0) {
+          filters.initiatives.forEach(c => params.append('initiatives', c));
         }
 
         const response = await fetch(`/api/metrics?${params.toString()}`);

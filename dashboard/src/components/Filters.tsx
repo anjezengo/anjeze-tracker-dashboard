@@ -1,11 +1,6 @@
-/**
- * URL-persistent filter components
- */
-
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFilters } from '@/lib/filters';
-import { supabase } from '@/lib/supabase';
 import clsx from 'clsx';
 
 export function Filters() {
@@ -16,80 +11,33 @@ export function Filters() {
     subProjects: string[];
     institutes: string[];
     types: string[];
-    causes: string[];
+    initiatives: string[];
   }>({
     years: [],
     projects: [],
     subProjects: [],
     institutes: [],
     types: [],
-    causes: [],
+    initiatives: [],
   });
 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch filter options from database
   useEffect(() => {
     async function fetchOptions() {
       setIsLoading(true);
       try {
-        // Fetch all rows with pagination (Supabase has 1000 row limit per request)
-        let allRows: any[] = [];
-        let page = 0;
-        const PAGE_SIZE = 1000;
-        let hasMore = true;
-
-        while (hasMore) {
-          const start = page * PAGE_SIZE;
-          const end = start + PAGE_SIZE - 1;
-
-          const { data, error } = await supabase
-            .from('facts_clean')
-            .select('*')
-            .range(start, end);
-
-          if (error) throw error;
-
-          if (data && data.length > 0) {
-            allRows = allRows.concat(data);
-            hasMore = data.length === PAGE_SIZE; // Continue if we got a full page
-            page++;
-          } else {
-            hasMore = false;
-          }
+        const response = await fetch('/api/filter-options');
+        const result = await response.json();
+        if (result.success && result.data) {
+          setOptions(result.data);
         }
-
-        const yearsSet = new Set<number>();
-        const projectsSet = new Set<string>();
-        const subProjectsSet = new Set<string>();
-        const institutesSet = new Set<string>();
-        const typesSet = new Set<string>();
-        const causesSet = new Set<string>();
-
-        allRows.forEach((row) => {
-          if (row.year_start) yearsSet.add(row.year_start);
-          if (row.project) projectsSet.add(row.project);
-          if (row.sub_project) subProjectsSet.add(row.sub_project);
-          if (row.institute) institutesSet.add(row.institute);
-          if (row.type_of_institution) typesSet.add(row.type_of_institution);
-          if (row.cause) causesSet.add(row.cause);
-        });
-
-        setOptions({
-          years: Array.from(yearsSet).sort((a, b) => a - b),
-          projects: Array.from(projectsSet).sort(),
-          subProjects: Array.from(subProjectsSet).sort(),
-          institutes: Array.from(institutesSet).sort(),
-          types: Array.from(typesSet).sort(),
-          causes: Array.from(causesSet).sort(),
-        });
       } catch (error) {
         console.error('Error fetching filter options:', error);
       } finally {
         setIsLoading(false);
       }
     }
-
     fetchOptions();
   }, []);
 
@@ -99,7 +47,7 @@ export function Filters() {
     filters.subProjects.length > 0 ||
     filters.institutes.length > 0 ||
     filters.types.length > 0 ||
-    filters.causes.length > 0;
+    filters.initiatives.length > 0;
 
   if (isLoading) {
     return (
@@ -139,39 +87,28 @@ export function Filters() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 relative z-[100]">
-        {/* Years (Multi-select) */}
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
-            Years
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">Years</label>
           <MultiSelect
             options={options.years.map(String)}
             selected={filters.years.map(String)}
-            onChange={(selected) =>
-              updateFilters({ years: selected.map(Number) })
-            }
+            onChange={(selected) => updateFilters({ years: selected.map(Number) })}
             placeholder="All Years"
           />
         </div>
 
-        {/* Cause (Multi-select) */}
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
-            Cause
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">Initiatives</label>
           <MultiSelect
-            options={options.causes}
-            selected={filters.causes}
-            onChange={(selected) => updateFilters({ causes: selected })}
-            placeholder="All Causes"
+            options={options.initiatives}
+            selected={filters.initiatives}
+            onChange={(selected) => updateFilters({ initiatives: selected })}
+            placeholder="All Initiatives"
           />
         </div>
 
-        {/* Project (Multi-select) */}
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
-            Project
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">Project</label>
           <MultiSelect
             options={options.projects}
             selected={filters.projects}
@@ -180,11 +117,8 @@ export function Filters() {
           />
         </div>
 
-        {/* Sub-Project (Multi-select) */}
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
-            Sub-Project
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">Sub-Project</label>
           <MultiSelect
             options={options.subProjects}
             selected={filters.subProjects}
@@ -193,11 +127,8 @@ export function Filters() {
           />
         </div>
 
-        {/* Institute (Multi-select) */}
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
-            Institute
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">Institute</label>
           <MultiSelect
             options={options.institutes}
             selected={filters.institutes}
@@ -206,11 +137,8 @@ export function Filters() {
           />
         </div>
 
-        {/* Type (Multi-select) */}
         <div className="relative">
-          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">
-            Type
-          </label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-accent-secondary mb-2">Type</label>
           <MultiSelect
             options={options.types}
             selected={filters.types}
@@ -222,7 +150,6 @@ export function Filters() {
     </motion.div>
   );
 }
-
 
 function MultiSelect({
   options,
@@ -256,28 +183,16 @@ function MultiSelect({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded-lg px-4 py-2 text-left text-gray-900 dark:text-accent-primary focus:border-highlight-blue transition-colors flex items-center justify-between hover:border-gray-400 dark:hover:border-dark-500"
       >
-        <span className={clsx(
-          selected.length === 0 && 'text-gray-400 dark:text-accent-tertiary'
-        )}>
-          {selected.length > 0
-            ? `${selected.length} selected`
-            : placeholder}
+        <span className={clsx(selected.length === 0 && 'text-gray-400 dark:text-accent-tertiary')}>
+          {selected.length > 0 ? `${selected.length} selected` : placeholder}
         </span>
         <svg
-          className={clsx(
-            'w-4 h-4 transition-transform text-gray-600 dark:text-accent-secondary',
-            isOpen && 'rotate-180'
-          )}
+          className={clsx('w-4 h-4 transition-transform text-gray-600 dark:text-accent-secondary', isOpen && 'rotate-180')}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
@@ -293,7 +208,6 @@ function MultiSelect({
             transition={{ duration: 0.2 }}
             className="absolute z-[9999] w-full mt-2 glass-effect rounded-lg border border-gray-200 dark:border-dark-600 shadow-xl"
           >
-            {/* Search Input */}
             <div className="p-2 border-b border-gray-200 dark:border-dark-600">
               <input
                 type="text"
@@ -304,8 +218,6 @@ function MultiSelect({
                 className="w-full px-3 py-2 text-sm bg-white dark:bg-dark-800 border border-gray-300 dark:border-dark-600 rounded text-gray-900 dark:text-accent-primary placeholder-gray-400 dark:placeholder-accent-tertiary focus:outline-none focus:border-highlight-blue"
               />
             </div>
-
-            {/* Options List */}
             <div className="max-h-80 overflow-y-auto">
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((option) => (

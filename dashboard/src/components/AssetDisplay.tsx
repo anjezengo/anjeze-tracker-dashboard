@@ -5,7 +5,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFilters } from '@/lib/filters';
-import { AssetRow } from '@/lib/supabase';
+
+type AssetRow = {
+  sub_project_canon: string;
+  image_url: string | null;
+  description: string | null;
+};
 
 export function AssetDisplay() {
   const { filters } = useFilters();

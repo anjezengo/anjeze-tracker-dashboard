@@ -55,8 +55,8 @@ export function StatsCards() {
         if (filters.types.length > 0) {
           filters.types.forEach(t => params.append('types', t));
         }
-        if (filters.causes.length > 0) {
-          filters.causes.forEach(c => params.append('causes', c));
+        if (filters.initiatives.length > 0) {
+          filters.initiatives.forEach(c => params.append('initiatives', c));
         }
 
         const response = await fetch(`/api/metrics?${params.toString()}`);
@@ -69,10 +69,10 @@ export function StatsCards() {
             totalRecords: result.data.overall.total_records,
             uniqueProjects: result.data.overall.unique_projects,
             uniqueSubProjects: result.data.overall.unique_sub_projects,
-            uniqueCauses: result.data.overall.unique_causes,
+            uniqueCauses: result.data.overall.unique_initiatives,
             projectList: result.data.overall.project_list,
             subProjectList: result.data.overall.sub_project_list,
-            causeList: result.data.overall.cause_list,
+            causeList: result.data.overall.initiatives_list,
           };
 
           setStats(newStats);

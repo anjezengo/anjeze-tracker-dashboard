@@ -8,6 +8,7 @@
 import XLSX from 'xlsx';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import dnsModule from 'dns';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { cleanRow } from './utils.js';
@@ -38,25 +39,50 @@ function parseArgs() {
 
 // Validate environment variables
 function validateEnv() {
+  if (process.env.DATABASE_URL) return;
   const required = ['PGHOST', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGPASSWORD'];
   const missing = required.filter(key => !process.env[key]);
-
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}\nPlease copy .env.example to .env and fill in your Supabase credentials.`);
+    throw new Error(`Missing required env vars: ${missing.join(', ')}\nSet DATABASE_URL or individual PG* vars.`);
   }
 }
 
+// Resolve hostname to IPv4 via Google DNS (local router DNS blocks some cloud hosts)
+dnsModule.setServers(['8.8.8.8', '1.1.1.1']);
+async function resolveToIp(hostname) {
+  return new Promise((resolve) => {
+    dnsModule.resolve4(hostname, (err, addresses) => {
+      resolve(err ? null : addresses[0]);
+    });
+  });
+}
+
 // Create database connection pool
-function createPool() {
+// Resolves the hostname via Google DNS if local DNS fails, keeps SNI intact for SSL
+async function createPool() {
+  const connStr = process.env.DATABASE_URL;
+  if (connStr) {
+    const url = new URL(connStr);
+    const ip = await resolveToIp(url.hostname);
+    const sslOpts = { rejectUnauthorized: false, ...(ip ? { servername: url.hostname } : {}) };
+    const host = ip || url.hostname;
+    return new Pool({
+      host,
+      port: parseInt(url.port || '5432', 10),
+      database: url.pathname.slice(1),
+      user: url.username,
+      password: decodeURIComponent(url.password),
+      ssl: sslOpts
+    });
+  }
+  const ip = await resolveToIp(process.env.PGHOST);
   return new Pool({
-    host: process.env.PGHOST,
+    host: ip || process.env.PGHOST,
     port: parseInt(process.env.PGPORT, 10),
     database: process.env.PGDATABASE,
     user: process.env.PGUSER,
     password: process.env.PGPASSWORD,
-    ssl: {
-      rejectUnauthorized: false
-    }
+    ssl: { rejectUnauthorized: false, ...(ip ? { servername: process.env.PGHOST } : {}) }
   });
 }
 
@@ -113,9 +139,9 @@ function readExcelFile(filePath) {
 async function upsertRow(pool, cleanedRow) {
   const query = `
     INSERT INTO tracker_raw (
-      sr_no, year, month, date, cause, project, sub_project, institute, department, type_of_institution,
-      quantity, no_of_beneficiaries, amount, remarks, comments_by_pankti, on_account_kind,
-      month_canon, cause_canon, project_canon, sub_project_canon, institute_canon, department_canon, type_of_institution_canon, remarks_canon,
+      sr_no, year, month, date, initiatives, project, sub_project, institute, department, type_of_institution,
+      quantity, no_of_beneficiaries, amount, remarks, comments, on_account_kind,
+      month_canon, initiatives_canon, project_canon, sub_project_canon, institute_canon, department_canon, type_of_institution_canon, remarks_canon,
       year_start, year_end, year_label, date_iso,
       quantity_num, no_of_beneficiaries_num, amount_num, row_hash
     ) VALUES (
@@ -130,7 +156,7 @@ async function upsertRow(pool, cleanedRow) {
       year = EXCLUDED.year,
       month = EXCLUDED.month,
       date = EXCLUDED.date,
-      cause = EXCLUDED.cause,
+      initiatives = EXCLUDED.initiatives,
       project = EXCLUDED.project,
       sub_project = EXCLUDED.sub_project,
       institute = EXCLUDED.institute,
@@ -140,10 +166,10 @@ async function upsertRow(pool, cleanedRow) {
       no_of_beneficiaries = EXCLUDED.no_of_beneficiaries,
       amount = EXCLUDED.amount,
       remarks = EXCLUDED.remarks,
-      comments_by_pankti = EXCLUDED.comments_by_pankti,
+      comments = EXCLUDED.comments,
       on_account_kind = EXCLUDED.on_account_kind,
       month_canon = EXCLUDED.month_canon,
-      cause_canon = EXCLUDED.cause_canon,
+      initiatives_canon = EXCLUDED.initiatives_canon,
       project_canon = EXCLUDED.project_canon,
       sub_project_canon = EXCLUDED.sub_project_canon,
       institute_canon = EXCLUDED.institute_canon,
@@ -166,7 +192,7 @@ async function upsertRow(pool, cleanedRow) {
     cleanedRow.year,
     cleanedRow.month,
     cleanedRow.date,
-    cleanedRow.cause,
+    cleanedRow.initiatives,
     cleanedRow.project,
     cleanedRow.sub_project,
     cleanedRow.institute,
@@ -176,10 +202,10 @@ async function upsertRow(pool, cleanedRow) {
     cleanedRow.no_of_beneficiaries,
     cleanedRow.amount,
     cleanedRow.remarks,
-    cleanedRow.comments_by_pankti,
+    cleanedRow.comments,
     cleanedRow.on_account_kind,
     cleanedRow.month_canon,
-    cleanedRow.cause_canon,
+    cleanedRow.initiatives_canon,
     cleanedRow.project_canon,
     cleanedRow.sub_project_canon,
     cleanedRow.institute_canon,
@@ -202,7 +228,7 @@ async function upsertRow(pool, cleanedRow) {
 
 // Main import function
 async function importData(filePath) {
-  const pool = createPool();
+  const pool = await createPool();
 
   try {
     console.log('🚀 Starting import process...\n');
