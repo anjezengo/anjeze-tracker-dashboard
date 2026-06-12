@@ -11,7 +11,7 @@ import { YearlyTrendChart } from '@/components/YearlyTrendChart';
 import { AssetDisplay } from '@/components/AssetDisplay';
 import { CauseCards } from '@/components/CauseCards';
 import { RemarksQuantityVisualization } from '@/components/RemarksQuantityVisualization';
-import { SyncButton } from '@/components/SyncButton';
+import { UploadButton } from '@/components/UploadButton';
 
 export default function Home() {
   return (
@@ -73,8 +73,8 @@ export default function Home() {
         </motion.div>
       </div>
 
-      {/* Floating Sync Button */}
-      <SyncButton />
+      {/* Floating Upload Button */}
+      <UploadButton />
     </>
   );
 }

@@ -102,7 +102,7 @@ export function StatsCards() {
       prefix: '₹',
     },
     {
-      label: 'Causes Listed',
+      label: 'Initiatives',
       value: stats.uniqueCauses,
       color: 'text-highlight-cyan',
       icon: '🎯',

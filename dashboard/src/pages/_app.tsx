@@ -66,6 +66,16 @@ function AppContent({ Component, pageProps }: AppProps) {
               >
                 Submit Data
               </Link>
+              <Link
+                href="/upload"
+                className={`text-sm font-medium transition-colors ${
+                  router.pathname === '/upload'
+                    ? 'text-highlight-blue'
+                    : 'text-gray-600 dark:text-accent-secondary hover:text-gray-900 dark:hover:text-accent-primary'
+                }`}
+              >
+                Upload Excel
+              </Link>
 
               {/* User Info */}
               {isAuthenticated && user && (
