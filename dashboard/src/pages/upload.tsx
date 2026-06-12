@@ -48,11 +48,23 @@ export default function UploadPage() {
     setUploading(true);
     setResult(null);
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      // Read file as base64 — avoids formidable/multipart issues in Netlify Lambda
+      const fileData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // strip "data:...;base64," prefix
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileData }),
+      });
       const data: ImportResult = await res.json();
       setResult(data);
     } catch (e: any) {
