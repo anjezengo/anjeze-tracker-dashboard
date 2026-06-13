@@ -19,6 +19,7 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,28 +44,93 @@ export default function UploadPage() {
     if (f) handleFile(f);
   };
 
+  // Only send the columns our ETL layer knows about — strips blank/extra columns
+  // and keeps each JSON chunk well under Netlify's 6MB request limit.
+  const KNOWN_COLS = new Set([
+    'Sr-No-', 'Sr.No', 'Sr No', 'Sr. No.',
+    'Year', 'Date', 'Project',
+    'Sub Project', 'Sub-Project',
+    'Name of Institute - Area of Service', 'Name of Institute / Area of Service', 'Institute',
+    'Type of Institution', 'Type Of Institution',
+    'Quantity',
+    'No- of Beneficiaries', 'No. of Beneficiaries', 'No of Beneficiaries',
+    'Amount', 'Initiatives', 'Cause',
+    'Services-Remarks', 'Services / Remarks', 'Remarks',
+    'Comments', 'Comments by Pankti',
+    'On account- Kind', 'On account/ Kind',
+  ]);
+
+  const CHUNK_SIZE = 500;
+
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
     setResult(null);
+    setProgress(null);
 
     try {
-      // Parse Excel in the browser — no Lambda timeout for CPU-heavy XLSX parsing
+      // Parse Excel in the browser (avoids Lambda CPU timeout)
       const arrayBuffer = await file.arrayBuffer();
       const XLSX = await import('xlsx');
       const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
       const sheetName = wb.SheetNames.find((n: string) => /tracker/i.test(n)) ?? wb.SheetNames[0];
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
+      const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
 
-      // Send pre-parsed rows — API only does DB upsert (fast)
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows }),
+      // Strip to known columns so each request chunk stays well under the 6MB Netlify limit
+      const slimRows = rawRows.map(row => {
+        const slim: Record<string, any> = {};
+        for (const key of Object.keys(row)) {
+          if (KNOWN_COLS.has(key)) slim[key] = row[key];
+        }
+        return slim;
       });
-      const data: ImportResult = await res.json();
-      setResult(data);
+
+      const totalChunks = Math.ceil(slimRows.length / CHUNK_SIZE);
+      let accTotal = 0, accImported = 0, accErrors = 0, accNullDates = 0;
+      const allErrorSamples: string[] = [];
+
+      for (let i = 0; i < slimRows.length; i += CHUNK_SIZE) {
+        const chunkNum = Math.floor(i / CHUNK_SIZE) + 1;
+        setProgress(`Uploading batch ${chunkNum} of ${totalChunks}…`);
+
+        const chunk = slimRows.slice(i, i + CHUNK_SIZE);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rows: chunk }),
+        });
+
+        let data: ImportResult;
+        const text = await res.text();
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Server error on batch ${chunkNum}: ${text.slice(0, 300)}`);
+        }
+
+        if (!data.success) throw new Error(data.error ?? `Batch ${chunkNum} failed`);
+
+        accTotal     += data.stats?.total     ?? 0;
+        accImported  += data.stats?.imported  ?? 0;
+        accErrors    += data.stats?.errors    ?? 0;
+        accNullDates += data.stats?.nullDates  ?? 0;
+        if (data.errorSamples) allErrorSamples.push(...data.errorSamples);
+      }
+
+      setProgress(null);
+      setResult({
+        success: true,
+        stats: {
+          total: accTotal,
+          imported: accImported,
+          errors: accErrors,
+          nullDates: accNullDates,
+          nullDateRate: accTotal > 0 ? ((accNullDates / accTotal) * 100).toFixed(1) + '%' : '0%',
+        },
+        errorSamples: allErrorSamples.slice(0, 5),
+      });
     } catch (e: any) {
+      setProgress(null);
       setResult({ success: false, error: e.message || 'Upload failed' });
     } finally {
       setUploading(false);
@@ -165,13 +231,15 @@ export default function UploadPage() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-lg font-medium">Importing rows — this may take 10–30s…</span>
+                <span className="text-lg font-medium">
+                  {progress ?? 'Parsing Excel…'}
+                </span>
               </div>
               <div className="mt-4 h-2 bg-gray-200 dark:bg-dark-700 rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-highlight-blue rounded-full"
-                  animate={{ width: ['0%', '85%'] }}
-                  transition={{ duration: 20, ease: 'easeInOut' }}
+                  animate={{ width: ['0%', '90%'] }}
+                  transition={{ duration: 15, ease: 'easeInOut' }}
                 />
               </div>
             </motion.div>
