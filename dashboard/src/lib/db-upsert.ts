@@ -72,7 +72,10 @@ export function processRawRow(row: Record<string, any>): ProcessedRow | null {
 
   const dateIso  = parseDateIso(dateRaw);
   const { year_start, year_end, year_label } = parseYear(yearRaw);
-  const hashInput = `${srNo ?? ''}|${dateRaw ?? ''}|${project ?? ''}`;
+  // Normalize date to ISO before hashing so Excel serial numbers and formatted
+  // date strings from different import paths produce the same hash for the same row.
+  const dateNorm = dateIso ?? (dateRaw != null ? String(dateRaw) : '');
+  const hashInput = `${srNo ?? ''}|${dateNorm}|${project ?? ''}`;
   const rowHash   = crypto.createHash('sha256').update(hashInput).digest('hex').slice(0, 32);
 
   return [
