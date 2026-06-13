@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('[upload] pool ok, upserting', body.rows.length, 'rows');
 
     const stats = await batchUpsert(pool, body.rows);
-    console.log('[upload] done —', stats.imported, 'imported,', stats.errors, 'errors');
+    console.log('[upload] done —', stats.inserted, 'inserted,', stats.updated, 'updated,', stats.errors, 'errors');
 
     return res.status(200).json({ success: true, stats, errorSamples: stats.errorSamples });
   } catch (e: any) {
