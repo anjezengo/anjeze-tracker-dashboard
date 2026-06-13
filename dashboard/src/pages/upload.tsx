@@ -44,7 +44,7 @@ export default function UploadPage() {
     if (f) handleFile(f);
   };
 
-  const CHUNK_SIZE = 200;
+  const CHUNK_SIZE = 100;
 
   const handleUpload = async () => {
     if (!file) return;
@@ -58,8 +58,22 @@ export default function UploadPage() {
       const XLSX = await import('xlsx');
       const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
       const sheetName = wb.SheetNames.find((n: string) => /tracker/i.test(n)) ?? wb.SheetNames[0];
-      // Send ALL columns — column name stripping was hiding data when header names differ from aliases
-      const slimRows: Record<string, any>[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
+      const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
+
+      // Find columns that have at least one non-null, non-empty value across the whole file.
+      // This removes phantom/empty Excel columns without dropping data columns whose
+      // header names differ from our expected aliases.
+      const activeKeys = new Set<string>();
+      for (const row of rawRows) {
+        for (const [k, v] of Object.entries(row)) {
+          if (v !== null && v !== undefined && String(v).trim() !== '') activeKeys.add(k);
+        }
+      }
+      const slimRows = rawRows.map(row => {
+        const slim: Record<string, any> = {};
+        for (const k of activeKeys) slim[k] = row[k] ?? null;
+        return slim;
+      });
 
       const totalChunks = Math.ceil(slimRows.length / CHUNK_SIZE);
       let accTotal = 0, accImported = 0, accErrors = 0, accNullDates = 0;
