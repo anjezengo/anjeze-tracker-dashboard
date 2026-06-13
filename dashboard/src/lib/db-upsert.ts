@@ -9,7 +9,7 @@ export const COL_ALIASES = {
   project:       ['Project'],
   subProject:    ['Sub Project', 'Sub-Project'],
   institute:     ['Name of Institute - Area of Service', 'Name of Institute / Area of Service', 'Institute'],
-  typeInst:      ['Type of Institution', 'Type Of Institution'],
+  typeInst:      ['Type of Institution', 'Type Of Institution', 'Type of Institute', 'Type Of Institute'],
   quantity:      ['Quantity'],
   beneficiaries: ['No- of Beneficiaries', 'No. of Beneficiaries', 'No of Beneficiaries'],
   amount:        ['Amount'],
@@ -19,8 +19,17 @@ export const COL_ALIASES = {
   onAccount:     ['On account- Kind', 'On account/ Kind'],
 };
 
+// Normalize whitespace: collapse \r\n / tabs / multiple spaces → single space, then trim + lowercase.
+// Excel headers often contain embedded newlines and leading/trailing spaces (e.g. " No. of \r\nBeneficiaries ").
+function normalizeKey(k: string): string {
+  return String(k).replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim().toLowerCase();
+}
+
 function getCol(row: Record<string, any>, aliases: string[]): any {
-  for (const a of aliases) if (row[a] !== undefined) return row[a];
+  const normAliases = aliases.map(normalizeKey);
+  for (const [k, v] of Object.entries(row)) {
+    if (normAliases.includes(normalizeKey(k))) return v;
+  }
   return undefined;
 }
 
