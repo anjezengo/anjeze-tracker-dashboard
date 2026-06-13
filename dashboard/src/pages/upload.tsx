@@ -44,23 +44,7 @@ export default function UploadPage() {
     if (f) handleFile(f);
   };
 
-  // Only send the columns our ETL layer knows about — strips blank/extra columns
-  // and keeps each JSON chunk well under Netlify's 6MB request limit.
-  const KNOWN_COLS = new Set([
-    'Sr-No-', 'Sr.No', 'Sr No', 'Sr. No.',
-    'Year', 'Date', 'Project',
-    'Sub Project', 'Sub-Project',
-    'Name of Institute - Area of Service', 'Name of Institute / Area of Service', 'Institute',
-    'Type of Institution', 'Type Of Institution',
-    'Quantity',
-    'No- of Beneficiaries', 'No. of Beneficiaries', 'No of Beneficiaries',
-    'Amount', 'Initiatives', 'Cause',
-    'Services-Remarks', 'Services / Remarks', 'Remarks',
-    'Comments', 'Comments by Pankti',
-    'On account- Kind', 'On account/ Kind',
-  ]);
-
-  const CHUNK_SIZE = 500;
+  const CHUNK_SIZE = 200;
 
   const handleUpload = async () => {
     if (!file) return;
@@ -74,16 +58,8 @@ export default function UploadPage() {
       const XLSX = await import('xlsx');
       const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
       const sheetName = wb.SheetNames.find((n: string) => /tracker/i.test(n)) ?? wb.SheetNames[0];
-      const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
-
-      // Strip to known columns so each request chunk stays well under the 6MB Netlify limit
-      const slimRows = rawRows.map(row => {
-        const slim: Record<string, any> = {};
-        for (const key of Object.keys(row)) {
-          if (KNOWN_COLS.has(key)) slim[key] = row[key];
-        }
-        return slim;
-      });
+      // Send ALL columns — column name stripping was hiding data when header names differ from aliases
+      const slimRows: Record<string, any>[] = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
 
       const totalChunks = Math.ceil(slimRows.length / CHUNK_SIZE);
       let accTotal = 0, accImported = 0, accErrors = 0, accNullDates = 0;
