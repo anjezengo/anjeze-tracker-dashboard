@@ -49,21 +49,18 @@ export default function UploadPage() {
     setResult(null);
 
     try {
-      // Read file as base64 — avoids formidable/multipart issues in Netlify Lambda
-      const fileData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(',')[1]); // strip "data:...;base64," prefix
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Parse Excel in the browser — no Lambda timeout for CPU-heavy XLSX parsing
+      const arrayBuffer = await file.arrayBuffer();
+      const XLSX = await import('xlsx');
+      const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
+      const sheetName = wb.SheetNames.find((n: string) => /tracker/i.test(n)) ?? wb.SheetNames[0];
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { raw: true, defval: null });
 
+      // Send pre-parsed rows — API only does DB upsert (fast)
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileData }),
+        body: JSON.stringify({ rows }),
       });
       const data: ImportResult = await res.json();
       setResult(data);
