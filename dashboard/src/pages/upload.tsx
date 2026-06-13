@@ -6,7 +6,8 @@ type ImportResult = {
   success: boolean;
   stats?: {
     total: number;
-    imported: number;
+    inserted: number;
+    updated: number;
     errors: number;
     nullDates: number;
     nullDateRate: string;
@@ -76,7 +77,7 @@ export default function UploadPage() {
       });
 
       const totalChunks = Math.ceil(slimRows.length / CHUNK_SIZE);
-      let accTotal = 0, accImported = 0, accErrors = 0, accNullDates = 0;
+      let accTotal = 0, accInserted = 0, accUpdated = 0, accErrors = 0, accNullDates = 0;
       const allErrorSamples: string[] = [];
 
       for (let i = 0; i < slimRows.length; i += CHUNK_SIZE) {
@@ -101,7 +102,8 @@ export default function UploadPage() {
         if (!data.success) throw new Error(data.error ?? `Batch ${chunkNum} failed`);
 
         accTotal     += data.stats?.total     ?? 0;
-        accImported  += data.stats?.imported  ?? 0;
+        accInserted  += data.stats?.inserted  ?? 0;
+        accUpdated   += data.stats?.updated   ?? 0;
         accErrors    += data.stats?.errors    ?? 0;
         accNullDates += data.stats?.nullDates  ?? 0;
         if (data.errorSamples) allErrorSamples.push(...data.errorSamples);
@@ -112,7 +114,8 @@ export default function UploadPage() {
         success: true,
         stats: {
           total: accTotal,
-          imported: accImported,
+          inserted: accInserted,
+          updated: accUpdated,
           errors: accErrors,
           nullDates: accNullDates,
           nullDateRate: accTotal > 0 ? ((accNullDates / accTotal) * 100).toFixed(1) + '%' : '0%',
@@ -261,14 +264,17 @@ export default function UploadPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       {[
                         { label: 'Total rows', value: result.stats.total },
-                        { label: 'Imported', value: result.stats.imported, highlight: true },
+                        { label: 'New rows', value: result.stats.inserted, highlight: true },
+                        { label: 'Updated', value: result.stats.updated, muted: true },
                         { label: 'Errors', value: result.stats.errors, warn: result.stats.errors > 0 },
                         { label: 'Missing dates', value: result.stats.nullDates, sub: result.stats.nullDateRate },
                       ].map(s => (
                         <div key={s.label} className="text-center bg-white dark:bg-dark-800 rounded-lg p-3">
                           <div className={`text-2xl font-bold ${
                             s.highlight ? 'text-green-600 dark:text-green-400' :
-                            s.warn ? 'text-red-500' : 'text-gray-700 dark:text-accent-primary'
+                            s.warn ? 'text-red-500' :
+                            s.muted ? 'text-gray-400 dark:text-accent-tertiary' :
+                            'text-gray-700 dark:text-accent-primary'
                           }`}>
                             {s.value}
                           </div>

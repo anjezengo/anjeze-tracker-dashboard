@@ -148,7 +148,8 @@ const BATCH_SIZE = 100;
 
 export type UpsertStats = {
   total: number;
-  imported: number;
+  inserted: number;
+  updated: number;
   errors: number;
   nullDates: number;
   nullDateRate: string;
@@ -156,21 +157,20 @@ export type UpsertStats = {
 };
 
 export async function batchUpsert(pool: Pool, rawRows: Record<string, any>[]): Promise<UpsertStats> {
-  // Process all rows first
   const processed: ProcessedRow[] = [];
   let nullDates = 0;
   for (const raw of rawRows) {
     const row = processRawRow(raw);
     if (!row) continue;
-    if (!row[23]) nullDates++; // date_iso is index 23
+    if (!row[23]) nullDates++;
     processed.push(row);
   }
 
-  let imported = 0;
+  let inserted = 0;
+  let updated = 0;
   let errors = 0;
   const errorSamples: string[] = [];
 
-  // Batch insert
   for (let i = 0; i < processed.length; i += BATCH_SIZE) {
     const batch = processed.slice(i, i + BATCH_SIZE);
     const placeholders: string[] = [];
@@ -185,23 +185,27 @@ export async function batchUpsert(pool: Pool, rawRows: Record<string, any>[]): P
     }
 
     try {
-      await pool.query(
+      // xmax = 0 means the row was a fresh INSERT; non-zero means it was a conflict UPDATE
+      const result = await pool.query(
         `INSERT INTO tracker_raw (${COLS})
          VALUES ${placeholders.join(',\n')}
-         ON CONFLICT (row_hash) DO UPDATE SET ${UPDATE_SET}`,
+         ON CONFLICT (row_hash) DO UPDATE SET ${UPDATE_SET}
+         RETURNING (xmax = 0) AS is_new`,
         params
       );
-      imported += batch.length;
+      for (const r of result.rows) {
+        if (r.is_new) inserted++; else updated++;
+      }
     } catch (e: any) {
-      // On batch failure, try rows individually so one bad row doesn't kill the batch
       for (const row of batch) {
         try {
-          await pool.query(
+          const r = await pool.query(
             `INSERT INTO tracker_raw (${COLS}) VALUES (${Array.from({ length: NUM_COLS }, (_, c) => `$${c + 1}`).join(',')})
-             ON CONFLICT (row_hash) DO UPDATE SET ${UPDATE_SET}`,
+             ON CONFLICT (row_hash) DO UPDATE SET ${UPDATE_SET}
+             RETURNING (xmax = 0) AS is_new`,
             row
           );
-          imported++;
+          if (r.rows[0]?.is_new) inserted++; else updated++;
         } catch (rowErr: any) {
           errors++;
           if (errorSamples.length < 5) errorSamples.push(String(rowErr.message).slice(0, 120));
@@ -212,7 +216,8 @@ export async function batchUpsert(pool: Pool, rawRows: Record<string, any>[]): P
 
   return {
     total: rawRows.length,
-    imported,
+    inserted,
+    updated,
     errors,
     nullDates,
     nullDateRate: processed.length > 0 ? ((nullDates / processed.length) * 100).toFixed(1) + '%' : '0%',
