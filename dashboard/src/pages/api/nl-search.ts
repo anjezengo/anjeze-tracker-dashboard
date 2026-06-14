@@ -22,9 +22,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!query?.trim()) return res.status(400).json({ error: 'query is required' });
 
-  const ollamaUrl = process.env.OLLAMA_URL ?? 'https://ollama.com/v1';
+  const ollamaUrl = process.env.OLLAMA_URL;
   const ollamaKey = process.env.OLLAMA_API_KEY ?? '';
-  const model = process.env.OLLAMA_MODEL ?? 'glm-5.1';
+  const model = process.env.OLLAMA_MODEL ?? 'gemma4:31b';
+
+  if (!ollamaUrl) {
+    return res.status(500).json({ error: 'OLLAMA_URL environment variable not set' });
+  }
 
   const { years = [], initiatives = [], projects = [], subProjects = [] } = options ?? {};
 
