@@ -23,9 +23,9 @@ module.exports = {
           secondary: '#a3a3a3',
           tertiary: '#737373',
         },
+        'brand': '#0D9488',
         'highlight': {
-          blue: '#3b82f6',
-          purple: '#a855f7',
+          blue: '#0D9488',
           green: '#22c55e',
           yellow: '#eab308',
           red: '#ef4444',

@@ -9,19 +9,16 @@ type InitiativeData = {
   count: number;
 };
 
-const ICONS = ['🏥', '📚', '🍎', '🎁', '💊', '🩺', '🏫', '🤝', '🌱', '💙'];
 const GRADIENTS = [
-  'from-green-500 to-green-700',
-  'from-blue-500 to-blue-700',
-  'from-orange-500 to-orange-700',
-  'from-pink-500 to-pink-700',
-  'from-purple-500 to-purple-700',
-  'from-teal-500 to-teal-700',
-  'from-yellow-500 to-yellow-700',
-  'from-red-500 to-red-700',
-  'from-indigo-500 to-indigo-700',
-  'from-cyan-500 to-cyan-700',
+  'linear-gradient(135deg, #0a1a0e 0%, #0f2214 100%)',
+  'linear-gradient(135deg, #0a0f1a 0%, #0d1526 100%)',
+  'linear-gradient(135deg, #1a0d0a 0%, #261208 100%)',
+  'linear-gradient(135deg, #150a1a 0%, #1e0d26 100%)',
+  'linear-gradient(135deg, #0a1618 0%, #0d1f22 100%)',
+  'linear-gradient(135deg, #181208 0%, #22190a 100%)',
 ];
+
+const ICONS = ['🏥', '📚', '🍎', '🎁', '💊', '🤝', '🧴', '🌱'];
 
 export function CauseCards() {
   const { filters } = useFilters();
@@ -59,9 +56,10 @@ export function CauseCards() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="glass-effect rounded-xl p-8">
-            <div className="shimmer h-16 w-16 rounded-full mx-auto mb-4"></div>
-            <div className="shimmer h-6 w-32 rounded mx-auto"></div>
+          <div key={i} className="rounded-2xl p-8 bg-gray-900 animate-pulse">
+            <div className="h-16 w-16 rounded-full bg-gray-800 mx-auto mb-4" />
+            <div className="h-5 w-32 rounded bg-gray-800 mx-auto mb-3" />
+            <div className="h-10 w-24 rounded bg-gray-800 mx-auto" />
           </div>
         ))}
       </div>
@@ -70,9 +68,7 @@ export function CauseCards() {
 
   if (initiatives.length === 0) {
     return (
-      <div className="text-center text-gray-500 dark:text-accent-tertiary py-8">
-        No initiative data available
-      </div>
+      <div className="text-center text-gray-500 py-8">No initiative data available</div>
     );
   }
 
@@ -81,27 +77,27 @@ export function CauseCards() {
       {initiatives.map((item, index) => (
         <motion.div
           key={item.initiatives}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: index * 0.1 }}
-          className="glass-effect rounded-xl p-8 text-center relative overflow-hidden group hover:scale-105 transition-transform duration-300"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: index * 0.07 }}
+          style={{ background: GRADIENTS[index % GRADIENTS.length] }}
+          className="rounded-2xl p-6 flex flex-col items-center text-center"
         >
-          <div className={`absolute inset-0 bg-gradient-to-br ${GRADIENTS[index % GRADIENTS.length]} opacity-10 group-hover:opacity-20 transition-opacity duration-300`} />
-          <div className="relative z-10">
-            <div className="text-6xl mb-4">{ICONS[index % ICONS.length]}</div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-accent-primary mb-3">
-              {item.initiatives}
-            </h3>
-            <div className="text-4xl font-bold text-highlight-blue">
-              {item.total_beneficiaries.toLocaleString()}
-            </div>
-            <p className="text-sm text-gray-600 dark:text-accent-secondary mt-1">Beneficiaries</p>
-            {item.count > 0 && (
-              <p className="text-xs text-gray-400 dark:text-accent-tertiary mt-2">
-                {item.count.toLocaleString()} activities
-              </p>
-            )}
+          <span className="text-6xl mb-4 select-none" role="img" aria-hidden>
+            {ICONS[index % ICONS.length]}
+          </span>
+          <h3 className="text-white font-bold text-lg leading-snug mb-3">
+            {item.initiatives}
+          </h3>
+          <div className="text-highlight-blue text-5xl font-bold tracking-tight">
+            {Math.round(item.total_beneficiaries).toLocaleString()}
           </div>
+          <p className="text-gray-400 text-sm mt-1">Beneficiaries</p>
+          {item.count > 0 && (
+            <p className="text-gray-500 text-xs mt-4 pt-3 border-t border-white/10 w-full">
+              {item.count.toLocaleString()} activities
+            </p>
+          )}
         </motion.div>
       ))}
     </div>

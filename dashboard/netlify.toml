@@ -6,18 +6,4 @@
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
-  NODE_VERSION = "18"
-
-# Netlify Functions Configuration
-[functions]
-  directory = "netlify/functions"
-  node_bundler = "esbuild"
-
-# Note: Scheduled function (runs every 6 hours) is configured in the function code itself
-# See: netlify/functions/scheduled-sync.ts
-
-# Redirects for Next.js
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  NODE_VERSION = "20"

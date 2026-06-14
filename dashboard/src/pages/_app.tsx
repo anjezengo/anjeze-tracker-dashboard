@@ -30,21 +30,13 @@ function AppContent({ Component, pageProps }: AppProps) {
     <div className="min-h-screen bg-white dark:bg-dark-950 transition-colors duration-300">
       {/* Header - Only show on authenticated pages */}
       {!isPublicPage && (
-        <motion.header
-          initial={{ y: -100 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="glass-effect border-b border-gray-200 dark:border-dark-600 sticky top-0 z-40"
-        >
+        <header className="glass-effect border-b border-gray-200 dark:border-dark-600 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/">
-              <motion.h1
-                whileHover={{ scale: 1.02 }}
-                className="text-2xl font-bold text-gray-900 dark:text-accent-primary"
-              >
-                Anjeze Tracker Dashboard
-              </motion.h1>
+              <h1 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-accent-primary">
+                Anjeze Tracker
+              </h1>
             </Link>
             <nav className="flex items-center space-x-6">
               <Link
@@ -121,7 +113,7 @@ function AppContent({ Component, pageProps }: AppProps) {
             </nav>
           </div>
         </div>
-      </motion.header>
+      </header>
       )}
 
       {/* Main Content */}
