@@ -24,10 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const ollamaUrl = process.env.OLLAMA_URL;
   const ollamaKey = process.env.OLLAMA_API_KEY ?? '';
-  const model = process.env.OLLAMA_MODEL ?? 'gemma4:31b';
+  const model = process.env.OLLAMA_MODEL;
 
-  if (!ollamaUrl) {
-    return res.status(500).json({ error: 'OLLAMA_URL environment variable not set' });
+  if (!ollamaUrl || !model) {
+    return res.status(500).json({ error: 'Missing OLLAMA_URL or OLLAMA_MODEL env vars' });
   }
 
   const { years = [], initiatives = [], projects = [], subProjects = [] } = options ?? {};
